@@ -10,7 +10,7 @@ const Header = () => {
               <img src="/logo.png" className="h-20" />
             </Link>
 
-            <Button variant="outlline">Login</Button>
+            <Button variant="outline">Login</Button>
 
             {/* <Show when="signed-out">
                 <SignInButton />

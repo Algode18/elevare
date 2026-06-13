@@ -33,3 +33,10 @@
 body {
   background-color: #0d1117;
 }
+
+.gradient-title {
+  background: linear-gradient(to bottom right, #6b7280, #e5e7eb, #ffffff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
