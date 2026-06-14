@@ -1,35 +1,83 @@
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "./ui/button";
-import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/react";
-import { PenBox } from "lucide-react";
+import { Show, SignInButton, UserButton, SignIn } from "@clerk/react";
+import { BriefcaseBusiness, Heart, PenBox } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const Header = () => {
-    return (
-        <>
-        <nav className="py-4 flex justify-between items-center">
-            <Link>
-              <img src="/logo.png" className="h-20" />
-            </Link>
+  const [showSignIn, setShowSignIn] = useState(false);
+  const [search, setSearch] = useSearchParams();
 
-           <div className="flex gap-8">
-     <Show when="signed-out">
-    <SignInButton>
-      <Button variant="outline">Login</Button>
-    </SignInButton>
-    </Show>
-    <Show when="signed-in">
-    {/* add a condition here */}
-    <Button variant="destructive" className="rounded-full">
-      <PenBox size={20} className="mr-2" />
-      Post a Job
-    </Button>
-    <Link to="/post-job"></Link>
-    <UserButton />
-  </Show>
-</div>
-        </nav>
-        </>
-    );
+  useEffect(() => {
+    if (search.get("sign-in")) {
+      setShowSignIn(true);
+    }
+  }, [search]);
+
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) {
+      setShowSignIn(false);
+      setSearch({});
+    }
+  };
+
+  return (
+    <>
+      <nav className="py-4 flex justify-between items-center">
+        <Link>
+          <img src="/logo.png" className="h-20" />
+        </Link>
+
+        <div className="flex gap-8">
+          <Show when="signed-out">
+            <Button variant="outline" onClick={() => setShowSignIn(true)}>
+              Login
+            </Button>
+          </Show>
+          <Show when="signed-in">
+            <Button variant="destructive" className="rounded-full">
+              <PenBox size={20} className="mr-2" />
+              Post a Job
+            </Button>
+            <Link to="/post-job"></Link>
+            <UserButton
+              appearance={{
+                elements: {
+                  avatarBox: "w-10 h-10",
+                },
+              }}
+            >
+              <UserButton.MenuItems>
+                <UserButton.Link
+                  label="My Jobs"
+                  labelIcon={<BriefcaseBusiness size={15} />}
+                  href="/my-jobs"
+                />
+                <UserButton.Link
+                  label="Saved Jobs"
+                  labelIcon={<Heart size={15} />}
+                  href="/saved-jobs"
+                />
+              </UserButton.MenuItems>
+            </UserButton>
+          </Show>
+        </div>
+      </nav>
+
+      {showSignIn && (
+        <div
+          className="fixed inset-0 flex items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.5)" }}
+          onClick={handleOverlayClick}
+        >
+          <SignIn
+            signUpForceRedirectUrl="/onboarding"
+            fallbackRedirectUrl="/onboarding"
+          />
+        </div>
+      )}
+    </>
+  );
 };
 
 export default Header;
