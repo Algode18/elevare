@@ -1,12 +1,14 @@
 import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "./ui/button";
-import { Show, SignInButton, UserButton, SignIn } from "@clerk/react";
+import { Show, SignInButton, UserButton, SignIn, useUser } from "@clerk/react";
 import { BriefcaseBusiness, Heart, PenBox } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const Header = () => {
   const [showSignIn, setShowSignIn] = useState(false);
   const [search, setSearch] = useSearchParams();
+
+  const { user } = useUser();
 
   useEffect(() => {
     if (search.get("sign-in")) {
@@ -24,8 +26,8 @@ const Header = () => {
   return (
     <>
       <nav className="py-4 flex justify-between items-center">
-        <Link>
-          <img src="/logo.png" className="h-20" />
+        <Link to="/">
+          <img src="/logo.png" className="h-20" alt="Hirrd Logo" />
         </Link>
 
         <div className="flex gap-8">
@@ -35,11 +37,14 @@ const Header = () => {
             </Button>
           </Show>
           <Show when="signed-in">
+            {user?.unsafeMetadata?.role === "recruiter" && (
+              <Link to="/post-job">
             <Button variant="destructive" className="rounded-full">
               <PenBox size={20} className="mr-2" />
               Post a Job
             </Button>
-            <Link to="/post-job"></Link>
+            </Link>
+            )}
             <UserButton
               appearance={{
                 elements: {
