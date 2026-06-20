@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { getSingleJob } from "@/api/apiJobs";
+import { getSingleJob, UpdateHiringStatus } from "@/api/apiJobs";
 import useFetch from "@/hooks/use-fetch";
 import { useUser } from "@clerk/react";
 import MDEditor from "@uiw/react-md-editor";
@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { BarLoader } from "react-spinners";
+import { Select } from "radix-ui";
+import { SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const JobPage = () => {
   const { isLoaded, user } = useUser();
@@ -23,6 +25,19 @@ const JobPage = () => {
   } = useFetch(getSingleJob, {
     job_id: id,
   });
+
+
+  const {
+    loading: loadingHiringStatus,
+    fn: fnHiringStatus
+  } = useFetch(UpdateHiringStatus, {
+    job_id: id,
+  });
+
+  const handleStatusChange =(value)=>{
+  const isOpen = value ==="open"
+  fnHiringStatus(isOpen).then(()=>fnJob());
+  }
 
   useEffect(() => {
     if (isLoaded) fnJob();
@@ -80,7 +95,29 @@ const JobPage = () => {
 
 
       {/* hiring status */}
+      {loadingHiringStatus && <BarLoader width={"100%"} color="#36d7b7" />}
+      {job?.recruiter_id === user?.id &&(
+        <Select  onValueChange={handleStatusChange}>
+          <SelectTrigger className={`w-full ${job?.isOpen ?  "bg-green-950" : "bg-red-950"}`}
+          >
+            <SelectValue placeholder={
+            "Hiring Status" + (job?.isOpen ? "(Open)" : "(Closed)") 
+            }
+            />
+          </SelectTrigger>
+          <SelectContent>
+           
+                  <SelectItem  value="open">
+                    Open
+                  </SelectItem>
 
+                   <SelectItem  value="closed">
+                    Closed
+                  </SelectItem>
+          
+        </SelectContent>
+      </Select>
+      )}
       <h2 className="text-2xl sm:text-3xl font-bold">
          About the job
       </h2>
