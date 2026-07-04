@@ -51,6 +51,10 @@ const {
     if (isLoaded) fnJobs();
   }, [isLoaded, location, company_id, searchQuery]);
 
+  useEffect(() => {
+  setCurrentPage(1);
+  }, [location, company_id, searchQuery]);
+
   const handleSearch = (e) => {
     e.preventDefault();
     let formData = new FormData(e.target);
@@ -152,6 +156,7 @@ const {
             currentJobs.map((job) => {
               return <JobCard key={job.id} job={job}
               savedInit={job?.saved?.length > 0}
+              onJobSaved={fnJobs}
               />;
             })
           ) : (

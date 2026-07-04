@@ -11,8 +11,9 @@ import {
 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { BarLoader } from "react-spinners";
-import { Select } from "radix-ui";
-import { SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ApplyJobDrawer from "@/components/apply-job";
+import ApplicationCard from "@/components/application-card";
 
 const JobPage = () => {
   const { isLoaded, user } = useUser();
@@ -30,14 +31,16 @@ const JobPage = () => {
   const {
     loading: loadingHiringStatus,
     fn: fnHiringStatus
-  } = useFetch(UpdateHiringStatus, {
+  } = useFetch(UpdateHiringStatus, 
+    {
     job_id: id,
-  });
+    }
+  );
 
-  const handleStatusChange =(value)=>{
-  const isOpen = value ==="open"
-  fnHiringStatus(isOpen).then(()=>fnJob());
-  }
+  const handleStatusChange =(value) => {
+  const isOpen = value === "open"
+  fnHiringStatus(isOpen).then(() => fnJob());
+  };
 
   useEffect(() => {
     if (isLoaded) fnJob();
@@ -95,27 +98,26 @@ const JobPage = () => {
 
 
       {/* hiring status */}
+      
       {loadingHiringStatus && <BarLoader width={"100%"} color="#36d7b7" />}
       {job?.recruiter_id === user?.id &&(
         <Select  onValueChange={handleStatusChange}>
-          <SelectTrigger className={`w-full ${job?.isOpen ?  "bg-green-950" : "bg-red-950"}`}
+          <SelectTrigger
+            className={`w-full ${
+              job?.isOpen
+                ? "bg-green-950 dark:bg-green-950"
+                : "bg-red-950 dark:bg-red-950"
+            }`}
           >
             <SelectValue placeholder={
             "Hiring Status" + (job?.isOpen ? "(Open)" : "(Closed)") 
             }
             />
           </SelectTrigger>
-          <SelectContent>
-           
-                  <SelectItem  value="open">
-                    Open
-                  </SelectItem>
-
-                   <SelectItem  value="closed">
-                    Closed
-                  </SelectItem>
-          
-        </SelectContent>
+          <SelectContent className="bg-zinc-900 border border-zinc-700">
+            <SelectItem value="open">Open</SelectItem>
+            <SelectItem value="closed">Closed</SelectItem>
+          </SelectContent>
       </Select>
       )}
       <h2 className="text-2xl sm:text-3xl font-bold">
@@ -134,6 +136,26 @@ const JobPage = () => {
       source={job?.requirements}
       className="bg-transparent sm:text-lg"
       />
+
+      {job?.recruiter_id !== user?.id && (
+      <ApplyJobDrawer
+          job={job}
+          user={user}
+          fetchJob={fnJob}
+          applied={job?.applications?.find((ap) => ap.candidate_id === user.id)}
+        />
+      )}
+
+      {job?.applications?.length > 0 && job?.recruiter_id === user?.id && (
+        <div className="flex flex-col gap-2">
+          <h2 className="text-2xl sm:text-3xl font-bold">Applications</h2>
+          {job?.applications.map((application) => {
+            return (
+              <ApplicationCard key={application.id} application={application} />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

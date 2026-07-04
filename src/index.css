@@ -135,6 +135,10 @@
   }
 }
 
+.wmde-markdown {
+  background-color: transparent !important;
+}
+
 .wmde-markdown ul {
   list-style-type: disc;
   padding-left: 25px;
