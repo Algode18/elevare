@@ -1,16 +1,47 @@
-# React + Vite
+# Elevare
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Elevare is a full-stack job platform connecting candidates and employers, with dedicated dashboards for both sides of the hiring process.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+**Candidate side**
+- Multi-step onboarding wizard to build a structured candidate profile
+- Job discovery with filtering, saved jobs, and one-click "Easily Apply"
+- Application tracking dashboard
+- Resume section and account settings
 
-## React Compiler
+**Employer side**
+- Employer dashboard with hiring pipeline funnel and KPIs
+- Job posting and management, with job expiration handling
+- Applicant tracking per job posting
+- Company Workspace — branding, offices, team, hiring/social presence, and analytics tabs
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
 
-## Expanding the ESLint configuration
+- **Frontend:** React 19, React Router, Tailwind CSS, Framer Motion, Radix UI / shadcn
+- **Auth:** Clerk
+- **Backend & Database:** Supabase (Postgres, Auth, Storage, Edge Functions)
+- **Forms & Validation:** React Hook Form, Zod
+- **Build Tool:** Vite
+- **Deployment:** Vercel
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Getting Started
+
+```bash
+npm install
+npm run dev
+```
+
+Create a `.env` file with:
+
+```
+VITE_CLERK_PUBLISHABLE_KEY=
+VITE_SUPABASE_URL=
+VITE_SUPABASE_PUBLISHABLE_KEY=
+```
+
+## Build
+
+```bash
+npm run build
+```
