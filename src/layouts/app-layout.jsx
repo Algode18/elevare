@@ -1,20 +1,12 @@
-import Header from "@/components/header"
-import { Outlet } from "react-router-dom"
-import "../App.css"
+import { Outlet } from "react-router-dom";
+import AppShell from "@/components/elevare/app-shell";
 
 const AppLayout = () => {
   return (
-    <div>
-      <div className="grid-background"></div>
-      <main className="min-h-screen container">
-      <Header />
+    <AppShell>
       <Outlet />
-      </main>
-      <div className="p-10 text-center bg-gray-800 mt-10">
-        Made with Both
-      </div>
-    </div>
-  )
-}
+    </AppShell>
+  );
+};
 
-export default AppLayout
+export default AppLayout;

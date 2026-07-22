@@ -7,172 +7,112 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
-} from "@/components/ui/drawer"
-import { Button } from "./ui/button"
-import { Input } from "./ui/input"
-import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
-import { Label } from "./ui/label"
-import z from "zod"
-import { Controller, useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod";
-import useFetch from "@/hooks/use-fetch"
-import { applyToJob } from "@/api/apiApplications"
-import { BarLoader } from "react-spinners"
+} from "@/components/ui/drawer";
+import { Button } from "./ui/button";
+import useFetch from "@/hooks/use-fetch";
+import useProfile from "@/hooks/use-profile";
+import { applyWithProfile } from "@/api/apiApplications";
+import { BarLoader } from "react-spinners";
+import { Link } from "react-router-dom";
+import { FileText, Pencil } from "lucide-react";
 
-const schema = z.object({
-  experience: z
-    .number()
-    .min(0, { message: "Experience must be at least 0" })
-    .int(),
-  skills: z.string().min(1, { message: "Skills are required" }),
-  education: z.enum(["Intermediate", "Graduate", "Post Graduate"], {
-    message: "Education is required",
-  }),
-  resume: z
-    .any()
-    .refine(
-      (file) =>
-        file[0] &&
-        (file[0].type === "application/pdf" ||
-          file[0].type === "application/msword"),
-      { message: "Only PDF or Word documents are allowed" }
-    ),
-});
-
+// "Easily Apply" — if the candidate's profile is complete, applying is a
+// single confirm click using their saved resume/skills/education. If not,
+// they're sent to /profile once; every application after that is instant.
 const ApplyJobDrawer = ({ user, job, fetchJob, applied = false }) => {
-  
-    const {
-        register,
-        handleSubmit,
-        control,
-        formState: { errors },
-        reset,
-    } = useForm({
-        resolver: zodResolver(schema),
+  const { profile, isComplete, loading: loadingProfile } = useProfile();
+
+  const {
+    loading: loadingApply,
+    error: errorApply,
+    fn: fnApply,
+  } = useFetch(applyWithProfile);
+
+  const onConfirmApply = () => {
+    fnApply({
+      job_id: job.id,
+      candidate_id: user.id,
+      name: user.fullName,
+      profile,
+    }).then(() => {
+      fetchJob();
     });
+  };
 
-    const {
-        loading: loadingApply,
-        error: errorApply,
-        fn: fnApply,
-    } = useFetch(applyToJob);
-
-    const onSubmit = (data) => {
-        fnApply({
-        ...data,
-        job_id: job.id,
-        candidate_id: user.id,
-        name: user.fullName,
-        status: "applied",
-        resume: data.resume[0],
-        }).then(() => {
-        fetchJob();
-        reset();
-        });
-    };
+  // Profile incomplete — send them to complete it once, then bring them
+  // straight back to this job.
+  if (!loadingProfile && !isComplete) {
+    return (
+      <Link to={`/profile?next=/jobs/${job.id}`}>
+        <Button
+          size="lg"
+          variant={job?.isOpen && !applied ? "blue" : "destructive"}
+          disabled={!job?.isOpen || applied}
+          className="w-full"
+        >
+          {job?.isOpen ? (applied ? "Applied" : "Complete Profile to Apply") : "Hiring Closed"}
+        </Button>
+      </Link>
+    );
+  }
 
   return (
     <Drawer open={applied ? false : undefined}>
-        <DrawerTrigger asChild>
-            <Button
-                size="lg"
-                variant={job?.isOpen && !applied ? "blue" : "destructive"}
-                disabled={!job?.isOpen || applied}
-                >
-                {job?.isOpen ? (applied ? "Applied" : "Apply") : "Hiring Closed"}
-            </Button>
-        </DrawerTrigger>
-        <DrawerContent>
-            <DrawerHeader>
-            <DrawerTitle>
-                Apply for {job?.title} at {job?.company?.name}
-            </DrawerTitle>
-            <DrawerDescription>Please Fill the form below</DrawerDescription>
-            </DrawerHeader>
+      <DrawerTrigger asChild>
+        <Button
+          size="lg"
+          variant={job?.isOpen && !applied ? "blue" : "destructive"}
+          disabled={!job?.isOpen || applied || loadingProfile}
+          className="w-full"
+        >
+          {job?.isOpen ? (applied ? "Applied" : "Easily Apply") : "Hiring Closed"}
+        </Button>
+      </DrawerTrigger>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle>
+            Apply for {job?.title} at {job?.company?.name}
+          </DrawerTitle>
+          <DrawerDescription>Review your profile before submitting</DrawerDescription>
+        </DrawerHeader>
 
-            <form 
-            onSubmit={handleSubmit(onSubmit)}
-            className="flex flex-col gap-4 p-4 pb-0"
-            >
-                <Input
-                    type="number"
-                    placeholder="Years of Experience"
-                    className="flex-1"
-                    {...register("experience", {
-                    valueAsNumber: true,
-                    })}
-                />
+        <div className="flex flex-col gap-3 p-4 pb-0">
+          <div className="hairline rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="font-medium">{profile?.full_name}</div>
+              <Link to={`/profile?next=/jobs/${job.id}`} className="text-muted-foreground hover:text-primary">
+                <Pencil className="h-4 w-4" />
+              </Link>
+            </div>
+            <div className="mt-1 text-sm text-muted-foreground">{profile?.headline}</div>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {profile?.skills?.slice(0, 6).map((s) => (
+                <span key={s} className="rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs">
+                  {s}
+                </span>
+              ))}
+            </div>
+            <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+              <FileText className="h-4 w-4" />
+              {profile?.resume_filename || "Resume attached"}
+            </div>
+          </div>
 
-                {errors.experience && (
-                    <p className="text-red-500">{errors.experience.message}</p>
-                )}
+          {errorApply?.message && <p className="text-red-500 text-sm">{errorApply.message}</p>}
+          {loadingApply && <BarLoader width={"100%"} color="#36d7b7" />}
+        </div>
 
-                <Input
-                    type="text"
-                    placeholder="Skills (Comma Separated)"
-                    className="flex-1"
-                    {...register("skills")}
-                />
-
-                {errors.skills && (
-                    <p className="text-red-500">{errors.skills.message}</p>
-                )}
-
-                <Controller
-                name="education"
-                control={control}
-                render={({ field }) => (
-
-                <RadioGroup onValueChange={field.onChange} {...field}>
-                    <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="Intermediate" id="intermediate" />
-                    <Label htmlFor="intermediate">Intermediate</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="Graduate" id="graduate" />
-                    <Label htmlFor="graduate">Graduate</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="Post Graduate" id="post-graduate" />
-                    <Label htmlFor="post-graduate">Post Graduate</Label>
-                    </div>
-                </RadioGroup>
-                    )}
-                />
-
-                {errors.education && (
-                    <p className="text-red-500">{errors.education.message}</p>
-                )}
-
-                <Input
-                    type="file"
-                    accept=".pdf, .doc, .docx"
-                    className="flex-1 file:text-gray-500"
-                    {...register("resume")}
-                />
-
-                {errors.resume && (
-                    <p className="text-red-500">{errors.resume.message}</p>
-                )}
-                {errorApply?.message && (
-                    <p className="text-red-500">{errorApply?.message}</p>
-                )}
-
-                {loadingApply && <BarLoader width={"100%"} color="#36d7b7" />}
-
-                <Button type="submit" variant="blue" size="lg">
-                    Apply
-                </Button>
-            </form>
-
-            <DrawerFooter>
-            <DrawerClose asChild>
-                <Button variant="outline">Cancel</Button>
-            </DrawerClose>
-            </DrawerFooter>
-        </DrawerContent>
+        <DrawerFooter>
+          <Button variant="blue" size="lg" onClick={onConfirmApply} disabled={loadingApply}>
+            Submit Application
+          </Button>
+          <DrawerClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DrawerClose>
+        </DrawerFooter>
+      </DrawerContent>
     </Drawer>
-  )
-}
+  );
+};
 
-export default ApplyJobDrawer
+export default ApplyJobDrawer;

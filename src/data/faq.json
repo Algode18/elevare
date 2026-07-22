@@ -1,26 +1,22 @@
 [
   {
-    "question": "What is Hirrd?",
-    "answer": "Hirrd is a Job Portal Application allows companies to post job listings and users to search and apply for jobs. It provides features for both job seekers and employers, with user-friendly interfaces and secure authentication."
+    "question": "Is Elevare free?",
+    "answer": "Yes — Elevare is free for candidates. Search, save, and apply to as many jobs as you like at no cost."
   },
   {
-    "question": "How do I post a job?",
-    "answer": "As an employer, you can post a job by navigating to the 'Post Job' section after logging in. Fill in the job details and submit the form to create a new job listing."
+    "question": "Do I need an account to browse jobs?",
+    "answer": "No. You can search and browse every job and company page as a guest. You only need to sign in when you want to apply, save a job, or post a role."
   },
   {
-    "question": "How can I search for jobs?",
-    "answer": "Job seekers can search for jobs by keywords, location, category, and other filters using the search bar on the homepage or the dedicated job search page."
+    "question": "How do employers hire on Elevare?",
+    "answer": "Employers create an account, add their company, and post jobs. Applicants show up on a simple pipeline where you can review resumes and update hiring status."
   },
   {
-    "question": "How do I apply for a job?",
-    "answer": "To apply for a job, click on the job listing and follow the application instructions provided. You may need to upload your resume and provide additional information."
+    "question": "How do applications work?",
+    "answer": "When you apply, you submit your experience, education, skills, and resume. The recruiter reviews it and updates your status as things progress."
   },
   {
-    "question": "Can I save jobs to apply later?",
-    "answer": "Yes, you can save job listings by clicking the 'Save Job' button on the job listing. Saved jobs can be accessed from your profile under the 'Saved Jobs' section."
-  },
-  {
-    "question": "How do I track my job applications?",
-    "answer": "Job seekers can track the status of their applications from the 'Applications' section in their profile. This section provides updates on the progress of each application."
+    "question": "Can I save jobs for later?",
+    "answer": "Yes — sign in and tap the heart icon on any job to save it. You can find everything you've saved on your dashboard."
   }
 ]

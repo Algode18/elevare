@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import useFetch from "@/hooks/use-fetch";
 import { BarLoader } from "react-spinners";
 import { getApplications } from "@/api/apiApplications";
+import { Link } from "react-router-dom";
+import { Send } from "lucide-react";
 
 const CreatedApplications = () => {
   const { user } = useUser();
@@ -22,20 +24,32 @@ const CreatedApplications = () => {
   }, []);
 
   if (loadingApplications) {
-    return <BarLoader className="mb-4" width={"100%"} color="#36d7b7" />;
+    return <BarLoader className="mb-4" width={"100%"} color="#7c5cff" />;
+  }
+
+  if (!applications?.length) {
+    return (
+      <div className="hairline flex flex-col items-center gap-3 rounded-2xl bg-surface p-16 text-center">
+        <div className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary">
+          <Send className="h-5 w-5" />
+        </div>
+        <div className="text-sm text-muted-foreground">No applications yet.</div>
+        <Link to="/jobs" className="text-sm font-medium text-primary hover:underline">
+          Browse jobs →
+        </Link>
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      {applications?.map((application) => {
-        return (
-          <ApplicationCard
-            key={application.id}
-            application={application}
-            isCandidate={true}
-          />
-        );
-      })}
+    <div className="flex flex-col gap-3">
+      {applications.map((application) => (
+        <ApplicationCard
+          key={application.id}
+          application={application}
+          isCandidate={true}
+        />
+      ))}
     </div>
   );
 };

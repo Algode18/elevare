@@ -6,10 +6,12 @@ import {
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
+  DrawerDescription,
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -17,6 +19,8 @@ import useFetch from "@/hooks/use-fetch";
 import { addNewCompany } from "@/api/apiCompanies";
 import { BarLoader } from "react-spinners";
 import { useEffect } from "react";
+import { useUser } from "@clerk/react";
+import { Plus, Building2 } from "lucide-react";
 
 const schema = z.object({
   name: z.string().min(1, { message: "Company name is required" }),
@@ -27,15 +31,17 @@ const schema = z.object({
         file[0] &&
         (file[0].type === "image/png" || file[0].type === "image/jpeg"),
       {
-        message: "Only Images are allowed",
+        message: "Only PNG or JPEG images are allowed",
       }
     ),
 });
 
 const AddCompanyDrawer = ({ fetchCompanies }) => {
+  const { user } = useUser();
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
@@ -52,57 +58,63 @@ const AddCompanyDrawer = ({ fetchCompanies }) => {
     fnAddCompany({
       ...data,
       logo: data.logo[0],
+      owner_id: user?.id,
     });
   };
 
   useEffect(() => {
     if (dataAddCompany?.length > 0) {
       fetchCompanies();
+      reset();
     }
-  }, [loadingAddCompany]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataAddCompany]);
 
   return (
     <Drawer>
-      <DrawerTrigger>
-        <Button type="button" size="sm" variant="secondary">
-          Add Company
+      <DrawerTrigger asChild>
+        <Button type="button" size="sm" variant="secondary" className="gap-1.5">
+          <Plus className="h-3.5 w-3.5" /> Add Company
         </Button>
       </DrawerTrigger>
       <DrawerContent>
         <DrawerHeader>
-          <DrawerTitle>Add a New Company</DrawerTitle>
+          <DrawerTitle className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-primary" /> Add a new company
+          </DrawerTitle>
+          <DrawerDescription>It'll show up in the company picker for job posts right away.</DrawerDescription>
         </DrawerHeader>
-        <form className="flex gap-2 p-4 pb-0">
-          {/* Company Name */}
-          <Input placeholder="Company name" {...register("name")} />
 
-          {/* Company Logo */}
-          <Input
-            type="file"
-            accept="image/*"
-            className=" file:text-gray-500"
-            {...register("logo")}
-          />
+        <form className="flex flex-col gap-4 p-4 pb-0">
+          <div>
+            <Label>Company name</Label>
+            <Input placeholder="e.g. Acme Corp" className="mt-1.5" {...register("name")} />
+            {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>}
+          </div>
 
-          {/* Add Button */}
-          <Button
-            type="button"
-            onClick={handleSubmit(onSubmit)}
-            variant="destructive"
-            className="w-40"
-          >
-            Add
-          </Button>
-        </form>
-        <DrawerFooter>
-          {errors.name && <p className="text-red-500">{errors.name.message}</p>}
-          {errors.logo && <p className="text-red-500">{errors.logo.message}</p>}
+          <div>
+            <Label>Logo</Label>
+            <Input
+              type="file"
+              accept="image/png,image/jpeg"
+              className="mt-1.5 file:text-muted-foreground"
+              {...register("logo")}
+            />
+            {errors.logo && <p className="mt-1 text-sm text-red-500">{errors.logo.message}</p>}
+          </div>
+
           {errorAddCompany?.message && (
-            <p className="text-red-500">{errorAddCompany?.message}</p>
+            <p className="text-sm text-red-500">{errorAddCompany.message}</p>
           )}
-          {loadingAddCompany && <BarLoader width={"100%"} color="#36d7b7" />}
+          {loadingAddCompany && <BarLoader width={"100%"} color="#7c5cff" />}
+        </form>
+
+        <DrawerFooter>
+          <Button type="button" onClick={handleSubmit(onSubmit)} disabled={loadingAddCompany}>
+            Add company
+          </Button>
           <DrawerClose asChild>
-            <Button type="button" variant="secondary">
+            <Button type="button" variant="outline">
               Cancel
             </Button>
           </DrawerClose>

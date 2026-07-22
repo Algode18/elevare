@@ -4,6 +4,8 @@ import { useUser } from "@clerk/react";
 import { BarLoader } from "react-spinners";
 import JobCard from "./job-card";
 import { useEffect } from "react";
+import { Link } from "react-router-dom";
+import { Briefcase } from "lucide-react";
 
 const CreatedJobs = () => {
   const { user } = useUser();
@@ -22,31 +24,28 @@ const CreatedJobs = () => {
   }, []);
 
   if (loadingCreatedJobs) {
-    return <BarLoader className="mb-4" width={"100%"} color="#36d7b7" />;
+    return <BarLoader className="mb-4" width={"100%"} color="#7c5cff" />;
+  }
+
+  if (!createdJobs?.length) {
+    return (
+      <div className="hairline flex flex-col items-center gap-3 rounded-2xl bg-surface p-16 text-center">
+        <div className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary">
+          <Briefcase className="h-5 w-5" />
+        </div>
+        <div className="text-sm text-muted-foreground">You haven't posted any jobs yet.</div>
+        <Link to="/employer/post-job" className="text-sm font-medium text-primary hover:underline">
+          Post your first job →
+        </Link>
+      </div>
+    );
   }
 
   return (
-    <div>
-      {loadingCreatedJobs ? (
-        <BarLoader className="mt-4" width={"100%"} color="#36d7b7" />
-      ) : (
-        <div className="mt-8 grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {createdJobs?.length ? (
-            createdJobs.map((job) => {
-              return (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  onJobAction={fnCreatedJobs}
-                  isMyJob
-                />
-              );
-            })
-          ) : (
-            <div>No Jobs Found 😢</div>
-          )}
-        </div>
-      )}
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {createdJobs.map((job) => (
+        <JobCard key={job.id} job={job} onJobSaved={fnCreatedJobs} isMyJob />
+      ))}
     </div>
   );
 };
