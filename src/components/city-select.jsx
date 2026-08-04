@@ -64,16 +64,22 @@ const CitySelect = ({ value, onChange, placeholder = "Any location", allowClear 
   return (
     <div ref={wrapRef} className={`relative ${className}`}>
       <div className="relative">
-        <Icon className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+        <Icon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={query}
           onChange={(e) => {
-            setQuery(e.target.value);
+            const next = e.target.value;
+            setQuery(next);
             setOpen(true);
+            // Typing must commit to the bound field too — previously only a
+            // dropdown click did this (via handlePick), so a typed city that
+            // wasn't clicked from the list was silently dropped, leaving the
+            // input showing text the form never actually received.
+            onChange(next);
           }}
           onFocus={() => setOpen(true)}
           placeholder={placeholder}
-          className={cn("h-10 border-none bg-transparent pl-9 pr-8 text-sm", inputClassName)}
+          className={cn("h-8 border border-input bg-transparent pl-9 pr-8 text-sm", inputClassName)}
         />
         {allowClear && value && (
           <button
@@ -88,7 +94,7 @@ const CitySelect = ({ value, onChange, placeholder = "Any location", allowClear 
       </div>
 
       {open && (
-        <div className="hairline absolute left-0 top-full z-20 mt-1.5 max-h-64 w-64 overflow-y-auto rounded-lg bg-surface p-1 shadow-xl">
+        <div className="absolute left-0 top-full z-20 mt-1.5 max-h-64 w-64 overflow-y-auto rounded-[var(--radius-dropdown)] border border-border bg-popover p-1 shadow-[var(--shadow-3)]">
           {results.length ? (
             results.map((c) => (
               <button

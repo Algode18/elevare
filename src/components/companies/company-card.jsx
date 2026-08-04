@@ -13,7 +13,7 @@ const CompanyCard = ({ company }) => {
   return (
     <Link
       to={`/companies/${company.id}`}
-      className="hairline hover-lift group relative flex flex-col gap-4 overflow-hidden rounded-2xl bg-surface/60 p-6 transition-shadow duration-300 hover:shadow-[0_0_0_1px_var(--border-strong),0_20px_40px_-24px_oklch(0.68_0.19_293/0.45)]"
+      className="group relative flex flex-col gap-4 overflow-hidden rounded-[var(--radius-card)] border border-border bg-card p-6 shadow-[var(--shadow-1)] transition-all duration-300 hover:-translate-y-1 hover:border-border-strong hover:shadow-[var(--shadow-2)]"
     >
       <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-primary/10 blur-3xl opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
@@ -23,7 +23,7 @@ const CompanyCard = ({ company }) => {
             <img
               src={company.logo_url}
               alt={company.name}
-              className="h-12 w-12 shrink-0 rounded-xl bg-white/5 object-contain p-1.5"
+              className="h-12 w-12 shrink-0 rounded-xl bg-surface-2 object-contain p-1.5 transition-transform duration-300 group-hover:scale-110"
             />
           ) : (
             <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-primary to-cyan text-primary-foreground">
@@ -32,7 +32,7 @@ const CompanyCard = ({ company }) => {
           )}
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="truncate font-medium group-hover:text-primary">{company.name}</span>
+              <span className="truncate font-medium text-foreground group-hover:text-primary">{company.name}</span>
               {isVerified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-cyan" aria-label="Verified company" />}
             </div>
             {company.industry && (
@@ -63,7 +63,7 @@ const CompanyCard = ({ company }) => {
       )}
 
       <div className="relative mt-auto flex items-center justify-between pt-1">
-        <Chip tone={isHiring ? "cyan" : "default"}>{isHiring ? "Hiring Now" : "No open roles"}</Chip>
+        <Chip tone={isHiring ? "hiring" : "closed"}>{isHiring ? "Hiring Now" : "No open roles"}</Chip>
         {isHiring && (
           <span className="text-xs font-medium text-primary">
             {company.open_roles} open role{company.open_roles === 1 ? "" : "s"}

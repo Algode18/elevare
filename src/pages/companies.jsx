@@ -51,23 +51,48 @@ const CompaniesPage = () => {
     fn();
   }, []);
 
-  const industries = useMemo(
-    () => [...new Set((companies || []).map((c) => c.industry).filter(Boolean))].sort(),
-    [companies]
-  );
-  const locations = useMemo(
-    () => [...new Set((companies || []).map((c) => c.headquarters).filter(Boolean))].sort(),
-    [companies]
-  );
+  // Companies can have the same industry typed with different casing or
+  // stray whitespace (e.g. "IT Services & Consulting" vs "IT services &
+  // consulting "), which used to show up as separate chips even though
+  // they're the same industry. Group by a normalized key and keep the
+  // first-seen original casing for display.
+  const normalizeIndustry = (value) => value?.trim().replace(/\s+/g, " ");
+  const normalizeLocation = (value) => value?.trim().replace(/\s+/g, " ").replace(/\s*,\s*/g, ", ");
+
+  const industries = useMemo(() => {
+    const byKey = new Map();
+    (companies || []).forEach((c) => {
+      const label = normalizeIndustry(c.industry);
+      if (!label) return;
+      const key = label.toLowerCase();
+      if (!byKey.has(key)) byKey.set(key, label);
+    });
+    return [...byKey.values()].sort();
+  }, [companies]);
+
+  const locations = useMemo(() => {
+    const byKey = new Map();
+    (companies || []).forEach((c) => {
+      const label = normalizeLocation(c.headquarters);
+      if (!label) return;
+      const key = label.toLowerCase();
+      if (!byKey.has(key)) byKey.set(key, label);
+    });
+    return [...byKey.values()].sort();
+  }, [companies]);
 
   const industryCounts = useMemo(() => {
     const counts = new Map();
+    const labels = new Map();
     (companies || []).forEach((c) => {
-      if (!c.industry) return;
-      counts.set(c.industry, (counts.get(c.industry) || 0) + 1);
+      const label = normalizeIndustry(c.industry);
+      if (!label) return;
+      const key = label.toLowerCase();
+      counts.set(key, (counts.get(key) || 0) + 1);
+      if (!labels.has(key)) labels.set(key, label);
     });
     return [...counts.entries()]
-      .map(([name, count]) => ({ name, count }))
+      .map(([key, count]) => ({ name: labels.get(key), count }))
       .sort((a, b) => b.count - a.count);
   }, [companies]);
 
@@ -79,8 +104,14 @@ const CompaniesPage = () => {
       const needle = search.trim().toLowerCase();
       list = list.filter((c) => c.name?.toLowerCase().includes(needle));
     }
-    if (industry) list = list.filter((c) => c.industry === industry);
-    if (location) list = list.filter((c) => c.headquarters === location);
+    if (industry) {
+      const key = industry.toLowerCase();
+      list = list.filter((c) => normalizeIndustry(c.industry)?.toLowerCase() === key);
+    }
+    if (location) {
+      const key = location.toLowerCase();
+      list = list.filter((c) => normalizeLocation(c.headquarters)?.toLowerCase() === key);
+    }
     if (size) list = list.filter((c) => c.company_size === size);
     if (hiring) list = list.filter((c) => ((c.open_roles || 0) > 0) === (hiring === "hiring"));
 
@@ -124,8 +155,6 @@ const CompaniesPage = () => {
     gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const isAllActive = !industry && !hiring;
-
   return (
     <div>
       {/* Asymmetric split hero — left-aligned copy + search, right-side
@@ -136,34 +165,43 @@ const CompaniesPage = () => {
         <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
         <div className="pointer-events-none absolute right-0 top-0 h-full w-1/3 grid-bg opacity-[0.08] [mask-image:linear-gradient(to_left,black,transparent)]" />
 
-        <div className="relative mx-auto max-w-6xl px-6 py-14 md:py-16">
-          <div className="grid gap-10 md:grid-cols-[1.15fr_0.85fr] md:items-center">
+        <div className="relative mx-auto max-w-6xl px-6 py-6 sm:px-8 md:py-16">
+          <div className="grid gap-0 md:grid-cols-[1.15fr_0.85fr] md:items-center md:gap-10">
             {/* Left: copy + search + chips, left-aligned (not centered) */}
             <motion.div
               initial={{ opacity: 0, x: -16 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             >
-              <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-primary">
+              <div className="flex items-center justify-center gap-2 text-center text-xs font-mono uppercase tracking-widest text-primary sm:justify-start sm:text-left">
                 <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                 Company Directory
               </div>
-              <h1 className="mt-4 font-display text-4xl leading-[1.1] sm:text-5xl">
-                Find companies
-                <br className="hidden sm:block" /> you&apos;ll love working for.
+              <h1 className="mt-4 text-center sm:text-left">
+                <span className="block font-display text-[28px] leading-[1.15] sm:hidden">
+                  Find Companies
+                </span>
+                <span className="hidden font-display text-4xl leading-[1.15] sm:block sm:max-w-[420px] md:max-w-[520px] md:text-5xl md:leading-[1.1]">
+                  Find companies
+                  <br className="hidden sm:block" /> you&apos;ll love working for.
+                </span>
               </h1>
-              <p className="mt-4 max-w-md text-muted-foreground">
+              {/* Short mobile-only description — full description restored at md+ */}
+              <p className="mt-3 text-center text-[15px] leading-snug text-muted-foreground opacity-90 sm:hidden">
+                Discover verified companies hiring now.
+              </p>
+              <p className="mt-3 hidden max-w-md text-muted-foreground opacity-80 md:block">
                 Search, filter, and explore employers actively hiring on Elevare —
                 see their roles, culture, and stack before you apply.
               </p>
 
-              <div className="mt-7 relative max-w-md">
+              <div className="mt-6 relative max-w-md">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={search}
                   onChange={(e) => setParams(e.target.value ? { search: e.target.value } : {})}
                   placeholder="Search companies..."
-                  className="h-11 pl-9 pr-9"
+                  className="h-12 pl-9 pr-9 md:h-11"
                 />
                 {search && (
                   <button
@@ -178,40 +216,13 @@ const CompaniesPage = () => {
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIndustry("");
-                    setHiring("");
-                  }}
-                  className={cn(
-                    "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                    isAllActive
-                      ? "border-primary bg-primary/15 text-primary"
-                      : "border-border bg-surface/60 text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  All
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setHiring(hiring === "hiring" ? "" : "hiring")}
-                  className={cn(
-                    "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                    hiring === "hiring"
-                      ? "border-primary bg-primary/15 text-primary"
-                      : "border-border bg-surface/60 text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Hiring
-                </button>
                 {industries.slice(0, 8).map((i) => (
                   <button
                     key={i}
                     type="button"
                     onClick={() => setIndustry(industry === i ? "" : i)}
                     className={cn(
-                      "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                      "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors md:px-3 md:py-1.5",
                       industry === i
                         ? "border-primary bg-primary/15 text-primary"
                         : "border-border bg-surface/60 text-muted-foreground hover:text-foreground"
@@ -232,7 +243,7 @@ const CompaniesPage = () => {
               className="hidden md:block"
             >
               <div className="flex flex-col items-end gap-3">
-                <div className="hairline mr-2 flex w-fit items-center gap-3 rounded-2xl bg-surface/80 p-4 shadow-lg backdrop-blur">
+                <div className="rounded-[var(--radius-card)] border border-border mr-2 flex w-fit items-center gap-3 bg-surface/80 p-4 shadow-[var(--shadow-2)] backdrop-blur">
                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
                     <Building2 className="h-4.5 w-4.5" />
                   </div>
@@ -241,7 +252,7 @@ const CompaniesPage = () => {
                     <div className="text-xs text-muted-foreground">Companies</div>
                   </div>
                 </div>
-                <div className="hairline mr-12 flex w-fit items-center gap-3 rounded-2xl bg-surface/80 p-4 shadow-lg backdrop-blur">
+                <div className="rounded-[var(--radius-card)] border border-border mr-12 flex w-fit items-center gap-3 bg-surface/80 p-4 shadow-[var(--shadow-2)] backdrop-blur">
                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-cyan/15 text-cyan">
                     <Flame className="h-4.5 w-4.5" />
                   </div>
@@ -250,7 +261,7 @@ const CompaniesPage = () => {
                     <div className="text-xs text-muted-foreground">Open Positions</div>
                   </div>
                 </div>
-                <div className="hairline flex w-fit items-center gap-3 rounded-2xl bg-surface/80 p-4 shadow-lg backdrop-blur">
+                <div className="rounded-[var(--radius-card)] border border-border flex w-fit items-center gap-3 bg-surface/80 p-4 shadow-[var(--shadow-2)] backdrop-blur">
                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
                     <Users className="h-4.5 w-4.5" />
                   </div>
@@ -262,29 +273,26 @@ const CompaniesPage = () => {
               </div>
             </motion.div>
 
-            {/* Compact stats row for mobile, where the offset cards are hidden */}
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm md:hidden">
-              <span className="flex items-center gap-1.5">
-                <Building2 className="h-3.5 w-5.5 text-primary" />
-                <span className="font-semibold">{companies?.length ?? "–"}</span>
-                <span className="text-muted-foreground">Companies</span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Flame className="h-3.5 w-5.5 text-primary" />
-                <span className="font-semibold">{totalOpenRoles}</span>
-                <span className="text-muted-foreground">Open Positions</span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Users className="h-3.5 w-5.5 text-primary" />
-                <span className="font-semibold">{hiringCount}</span>
-                <span className="text-muted-foreground">Hiring now</span>
-              </span>
+            {/* Compact 3-column stats for mobile, where the offset cards are hidden */}
+            <div className="mt-4 grid grid-cols-3 divide-x divide-border/60 text-center md:hidden">
+              <div className="flex flex-col items-center gap-0.5 px-1">
+                <span className="font-display text-lg leading-none">{companies?.length ?? "–"}</span>
+                <span className="text-[11px] text-muted-foreground">Companies</span>
+              </div>
+              <div className="flex flex-col items-center gap-0.5 px-1">
+                <span className="font-display text-lg leading-none">{totalOpenRoles}</span>
+                <span className="text-[11px] text-muted-foreground">Jobs</span>
+              </div>
+              <div className="flex flex-col items-center gap-0.5 px-1">
+                <span className="font-display text-lg leading-none">{hiringCount}</span>
+                <span className="text-[11px] text-muted-foreground">Hiring</span>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <div className="mx-auto max-w-6xl px-6 py-14">
+      <div className="mx-auto max-w-6xl px-6 pt-6 pb-14 sm:px-8 md:pt-14">
         {loading === false && featured.length > 0 && (
           <div className="mb-16">
             <div className="mb-6 text-xs font-mono uppercase tracking-wider text-muted-foreground">
@@ -315,7 +323,7 @@ const CompaniesPage = () => {
                     <img
                       src={c.logo_url}
                       alt={c.name}
-                      className="h-10 w-10 shrink-0 rounded-lg bg-white/5 object-contain p-1"
+                      className="h-10 w-10 shrink-0 rounded-lg bg-surface-2 object-contain p-1"
                     />
                   ) : (
                     <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-primary to-cyan text-primary-foreground">
@@ -367,11 +375,11 @@ const CompaniesPage = () => {
             Browse All Companies
           </div>
 
-          <div className="mb-3 flex flex-wrap gap-2">
-            <div className="hairline flex w-fit items-center gap-2 rounded-lg bg-surface px-1">
-              <MapPin className="ml-2 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <div className="mb-3 grid grid-cols-3 gap-2.5">
+            <div className="hairline flex min-w-0 items-center gap-1.5 rounded-xl bg-surface/60 px-3 py-2.5">
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <Select value={location} onValueChange={setLocation}>
-                <SelectTrigger className="w-fit gap-1 border-none bg-transparent">
+                <SelectTrigger className="w-full min-w-0 gap-1 border-none bg-transparent p-0 shadow-none hover:bg-transparent dark:bg-transparent dark:hover:bg-transparent">
                   <SelectValue placeholder="Location" />
                 </SelectTrigger>
                 <SelectContent>
@@ -392,11 +400,11 @@ const CompaniesPage = () => {
               </Select>
             </div>
 
-            <div className="hairline flex w-fit items-center gap-2 rounded-lg bg-surface px-1">
-              <Users className="ml-2 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <div className="hairline flex min-w-0 items-center gap-1.5 rounded-xl bg-surface/60 px-3 py-2.5">
+              <Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <Select value={size} onValueChange={setSize}>
-                <SelectTrigger className="w-fit gap-1 border-none bg-transparent">
-                  <SelectValue placeholder="Company size" />
+                <SelectTrigger className="w-full min-w-0 gap-1 border-none bg-transparent p-0 shadow-none hover:bg-transparent dark:bg-transparent dark:hover:bg-transparent">
+                  <SelectValue placeholder="Size" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
@@ -410,11 +418,11 @@ const CompaniesPage = () => {
               </Select>
             </div>
 
-            <div className="hairline flex w-fit items-center gap-2 rounded-lg bg-surface px-1">
-              <Briefcase className="ml-2 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <div className="hairline flex min-w-0 items-center gap-1.5 rounded-xl bg-surface/60 px-3 py-2.5">
+              <Briefcase className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <Select value={hiring} onValueChange={setHiring}>
-                <SelectTrigger className="w-fit gap-1 border-none bg-transparent">
-                  <SelectValue placeholder="Hiring status" />
+                <SelectTrigger className="w-full min-w-0 gap-1 border-none bg-transparent p-0 shadow-none hover:bg-transparent dark:bg-transparent dark:hover:bg-transparent">
+                  <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
@@ -483,7 +491,7 @@ const CompaniesPage = () => {
             </div>
           )}
 
-          {loading !== false && <BarLoader className="mt-4" width={"100%"} color="#7c5cff" />}
+          {loading !== false && <BarLoader className="mt-4" width={"100%"} color="var(--primary)" />}
 
           {loading === false && (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -521,12 +529,13 @@ const CompaniesPage = () => {
                 <p className="mx-auto mt-4 max-w-md text-muted-foreground">
                   Browse every open job on Elevare — new roles are added every day.
                 </p>
-                <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                <div className="mt-6 flex items-center justify-center gap-2 sm:mt-8 sm:gap-3">
                   <Link
-                    to="/jobs"
-                    className="group inline-flex items-center gap-2 rounded-md bg-foreground px-6 py-3 text-sm font-medium text-background hover:opacity-90"
+                    to="/dashboard/jobs"
+                    className="group inline-flex items-center gap-1.5 rounded-md bg-foreground px-4 py-2 text-xs font-medium text-background hover:opacity-90 sm:gap-2 sm:px-6 sm:py-3 sm:text-sm"
                   >
-                    Explore Jobs <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                    Explore Jobs{" "}
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 sm:h-4 sm:w-4" />
                   </Link>
                 </div>
               </>
@@ -538,16 +547,17 @@ const CompaniesPage = () => {
                 <p className="mx-auto mt-4 max-w-md text-muted-foreground">
                   List your company on Elevare and start reaching talented candidates today.
                 </p>
-                <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                <div className="mt-6 flex items-center justify-center gap-2 sm:mt-8 sm:gap-3">
                   <Link
                     to="/employer/post-job"
-                    className="group inline-flex items-center gap-2 rounded-md bg-foreground px-6 py-3 text-sm font-medium text-background hover:opacity-90"
+                    className="group inline-flex items-center gap-1.5 rounded-md bg-foreground px-4 py-2 text-xs font-medium text-background hover:opacity-90 sm:gap-2 sm:px-6 sm:py-3 sm:text-sm"
                   >
-                    For Employers <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                    For Employers{" "}
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 sm:h-4 sm:w-4" />
                   </Link>
                   <Link
                     to="/jobs"
-                    className="hairline inline-flex items-center gap-2 rounded-md bg-surface/60 px-6 py-3 text-sm font-medium backdrop-blur hover:border-border-strong"
+                    className="hairline inline-flex items-center gap-1.5 rounded-md bg-surface/60 px-4 py-2 text-xs font-medium backdrop-blur hover:border-border-strong sm:gap-2 sm:px-6 sm:py-3 sm:text-sm"
                   >
                     Browse All Jobs
                   </Link>

@@ -1,4 +1,4 @@
-import { getMyCompanies } from "@/api/apiCompanies";
+import { getMyCompanies, getCompanyOffices } from "@/api/apiCompanies";
 import { addNewJob, getSingleJob, updateJob } from "@/api/apiJobs";
 import AddCompanyDrawer from "@/components/add-company-drawer";
 import BackButton from "@/components/back-button";
@@ -18,7 +18,8 @@ import { cn } from "@/lib/utils";
 import { useUser } from "@clerk/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import MDEditor from "@uiw/react-md-editor";
-import CitySelect from "@/components/city-select";
+import { useResolvedTheme } from "@/components/theme-provider";
+import OfficeLocationSelect from "@/components/office-location-select";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
@@ -175,7 +176,7 @@ const ChipInput = ({ value = [], onChange, placeholder }) => {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-input bg-transparent px-2.5 py-2 focus-within:ring-2 focus-within:ring-ring/50">
+    <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5 rounded-md border border-input bg-transparent px-2.5 py-2 focus-within:ring-2 focus-within:ring-ring/50">
       {value.map((chip) => (
         <span
           key={chip}
@@ -204,6 +205,7 @@ const ChipInput = ({ value = [], onChange, placeholder }) => {
 const PostJobPage = () => {
   const { user, isLoaded } = useUser();
   const navigate = useNavigate();
+  const resolvedTheme = useResolvedTheme();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get("edit");
   const isEditMode = Boolean(editId);
@@ -244,8 +246,9 @@ const PostJobPage = () => {
     control,
     watch,
     getValues,
+    setValue,
     reset,
-    formState: { errors },
+    formState: { errors, dirtyFields },
   } = useForm({
     defaultValues,
     resolver: zodResolver(schema),
@@ -391,6 +394,43 @@ const PostJobPage = () => {
   const selectedCompany = companies?.find((c) => String(c.id) === String(watched.company_id));
   const salaryPreview = formatSalaryRange(watched);
 
+  // Location is restricted to the selected company's own registered offices
+  // (see OfficeLocationSelect) so a recruiter can't pick a city the company
+  // doesn't actually operate in. Refetch every time the company changes.
+  const { data: offices, fn: fnOffices } = useFetch(getCompanyOffices, {
+    company_id: selectedCompany?.id,
+  });
+
+  useEffect(() => {
+    if (selectedCompany?.id) fnOffices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCompany?.id]);
+
+  // Preload the company's saved Hiring Preferences (Company Profile → Hiring &
+  // Social) whenever a company is picked on a NEW job. This never fires during
+  // edit-mode hydration (that path uses reset(), not this handler), and it
+  // never overwrites a field the user has already touched by hand.
+  const handleCompanyChange = (value) => {
+    setValue("company_id", value, { shouldDirty: true, shouldValidate: true });
+    if (isEditMode) return;
+
+    const company = companies?.find((c) => String(c.id) === String(value));
+    if (!company) return;
+
+    if (!dirtyFields.location && company.default_location) {
+      setValue("location", company.default_location, { shouldDirty: false, shouldValidate: true });
+    }
+    if (!dirtyFields.work_mode && company.default_work_mode) {
+      setValue("work_mode", company.default_work_mode, { shouldDirty: false, shouldValidate: true });
+    }
+    if (!dirtyFields.job_type && company.default_employment_type) {
+      setValue("job_type", company.default_employment_type, { shouldDirty: false, shouldValidate: true });
+    }
+    if (!dirtyFields.salary_currency && company.default_currency) {
+      setValue("salary_currency", company.default_currency, { shouldDirty: false });
+    }
+  };
+
   // Lightweight completion + live validation, computed from current values.
   const progress = useMemo(() => {
     const checks = [
@@ -431,7 +471,7 @@ const PostJobPage = () => {
   );
 
   if (!isLoaded || loadingCompanies || (isEditMode && loadingJobToEdit && !jobToEdit)) {
-    return <BarLoader className="mb-4" width={"100%"} color="#7c5cff" />;
+    return <BarLoader className="mb-4" width={"100%"} color="var(--primary)" />;
   }
 
   if (user?.unsafeMetadata?.role !== "recruiter") {
@@ -463,7 +503,7 @@ const PostJobPage = () => {
           <img
             src={selectedCompany.logo_url}
             alt=""
-            className="h-10 w-10 shrink-0 rounded-md bg-white/5 object-contain p-1"
+            className="h-10 w-10 shrink-0 rounded-md bg-surface-2 object-contain p-1"
           />
         ) : (
           <div className="h-10 w-10 shrink-0 rounded-md bg-gradient-to-br from-primary to-cyan" />
@@ -574,7 +614,7 @@ const PostJobPage = () => {
                     name="company_id"
                     control={control}
                     render={({ field }) => (
-                      <Select value={field.value} onValueChange={field.onChange}>
+                      <Select value={field.value} onValueChange={handleCompanyChange}>
                         <SelectTrigger className="flex-1">
                           <SelectValue placeholder="Select company">
                             {field.value
@@ -606,15 +646,25 @@ const PostJobPage = () => {
                 <Controller
                   name="location"
                   control={control}
-                  render={({ field }) => (
-                    <CitySelect
-                      value={field.value}
-                      onChange={field.onChange}
-                      placeholder="Job location"
-                      allowClear={false}
-                      className="mt-1.5"
-                    />
-                  )}
+                  render={({ field }) =>
+                    selectedCompany ? (
+                      <OfficeLocationSelect
+                        offices={offices}
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Job location"
+                        className="mt-1.5"
+                        addOfficeHref={`/employer/company/${selectedCompany.id}/workspace?tab=offices`}
+                      />
+                    ) : (
+                      <div
+                        className="mt-1.5 flex h-9 items-center rounded-md border border-input bg-surface-2 px-3 text-sm text-muted-foreground"
+                        title="Select a company first"
+                      >
+                        Select a company first
+                      </div>
+                    )
+                  }
                 />
                 {errors.location && <p className="mt-1 text-xs text-destructive">{errors.location.message}</p>}
               </div>
@@ -709,7 +759,9 @@ const PostJobPage = () => {
                 <Controller
                   name="requirements"
                   control={control}
-                  render={({ field }) => <MDEditor value={field.value} onChange={field.onChange} />}
+                  render={({ field }) => (
+                    <MDEditor value={field.value} onChange={field.onChange} data-color-mode={resolvedTheme} />
+                  )}
                 />
               </div>
               {errors.requirements && (
@@ -793,10 +845,8 @@ const PostJobPage = () => {
 
           <SectionCard title="Application Settings">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <FieldLabel hint="Optional — job auto-closes after this date">
-                  Application Deadline
-                </FieldLabel>
+              <div className="min-w-0">
+                <FieldLabel hint="Optional">Deadline</FieldLabel>
                 <Input
                   className="mt-1.5"
                   type="date"
@@ -811,8 +861,8 @@ const PostJobPage = () => {
                 )}
               </div>
 
-              <div>
-                <FieldLabel hint="Optional, used for search/discovery">Hashtags</FieldLabel>
+              <div className="min-w-0">
+                <FieldLabel hint="Optional">Hashtags</FieldLabel>
                 <div className="mt-1.5">
                   <Controller
                     name="hashtags"
@@ -856,7 +906,7 @@ const PostJobPage = () => {
             <p className="text-sm text-destructive">{invalidFormMessage}</p>
           )}
           {errorSubmit?.message && <p className="text-sm text-destructive">{errorSubmit.message}</p>}
-          {loadingSubmit && <BarLoader width={"100%"} color="#7c5cff" />}
+          {loadingSubmit && <BarLoader width={"100%"} color="var(--primary)" />}
 
           {/* Actions */}
           <div className="flex flex-wrap items-center gap-3 border-t border-border/60 pt-5">

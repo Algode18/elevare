@@ -98,7 +98,7 @@ const SettingsTab = ({ company, onUpdated }) => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <section>
         <h2 className="mb-1 text-sm font-semibold">Public Career Page</h2>
         <p className="mb-4 text-xs text-muted-foreground">
@@ -115,7 +115,7 @@ const SettingsTab = ({ company, onUpdated }) => {
           </div>
           {errors.slug && <p className="mt-1 text-xs text-destructive">{errors.slug.message}</p>}
           {slugTaken && <p className="mt-1 text-xs text-destructive">That slug is already taken.</p>}
-          {loading && <BarLoader className="mt-3" width={"100%"} color="#7c5cff" />}
+          {loading && <BarLoader className="mt-3" width={"100%"} color="var(--primary)" />}
           <Button type="submit" size="sm" className="mt-3" disabled={loading || !isDirty}>
             Save
           </Button>
@@ -136,7 +136,7 @@ const SettingsTab = ({ company, onUpdated }) => {
 
             {(!company?.verification_status || company.verification_status === "rejected") && (
               <>
-                {requesting && <BarLoader className="mt-3" width={"100%"} color="#7c5cff" />}
+                {requesting && <BarLoader className="mt-3" width={"100%"} color="var(--primary)" />}
                 {verificationError && (
                   <p className="mt-2 text-xs text-destructive">
                     {verificationError.message || "Couldn't submit your request. Please try again."}
@@ -191,7 +191,7 @@ const SettingsTab = ({ company, onUpdated }) => {
             </p>
           )}
 
-          {deleting && <BarLoader width={"100%"} color="#7c5cff" />}
+          {deleting && <BarLoader width={"100%"} color="var(--primary)" />}
 
           <Button
             type="button"

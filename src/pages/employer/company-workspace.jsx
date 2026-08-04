@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useUser } from "@clerk/react";
 import { BarLoader } from "react-spinners";
 import { ShieldAlert } from "lucide-react";
@@ -9,7 +9,6 @@ import WorkspaceShell from "@/components/workspace/workspace-shell";
 import OverviewBrandingTab from "@/components/workspace/overview-branding-tab";
 import OfficesTab from "@/components/workspace/offices-tab";
 import HiringSocialTab from "@/components/workspace/hiring-social-tab";
-import TeamTab from "@/components/workspace/team-tab";
 import AnalyticsTab from "@/components/workspace/analytics-tab";
 import SettingsTab from "@/components/workspace/settings-tab";
 import useFetch from "@/hooks/use-fetch";
@@ -18,7 +17,12 @@ import { getCompanyById } from "@/api/apiCompanies";
 const CompanyWorkspacePage = () => {
   const { companyId } = useParams();
   const { user, isLoaded } = useUser();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [searchParams] = useSearchParams();
+  const VALID_TABS = ["overview", "offices", "hiring-social", "analytics", "settings"];
+  const requestedTab = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(
+    VALID_TABS.includes(requestedTab) ? requestedTab : "overview"
+  );
   const [company, setCompany] = useState(null);
 
   const { data, loading, fn: fnCompany } = useFetch(getCompanyById, { company_id: companyId });
@@ -35,7 +39,7 @@ const CompanyWorkspacePage = () => {
   const isOwner = Boolean(user?.id && company?.owner_id === user.id);
 
   if (!isLoaded || loading !== false) {
-    return <BarLoader width={"100%"} color="#7c5cff" />;
+    return <BarLoader width={"100%"} color="var(--primary)" />;
   }
 
   if (!company) {
@@ -72,7 +76,6 @@ const CompanyWorkspacePage = () => {
         {activeTab === "overview" && <OverviewBrandingTab company={company} onUpdated={setCompany} />}
         {activeTab === "offices" && <OfficesTab company={company} />}
         {activeTab === "hiring-social" && <HiringSocialTab company={company} onUpdated={setCompany} />}
-        {activeTab === "team" && <TeamTab company={company} />}
         {activeTab === "analytics" && <AnalyticsTab company={company} />}
         {activeTab === "settings" && <SettingsTab company={company} onUpdated={setCompany} />}
       </WorkspaceShell>

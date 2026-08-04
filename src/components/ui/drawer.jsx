@@ -6,9 +6,19 @@ import { Drawer as DrawerPrimitive } from "vaul"
 import { cn } from "@/lib/utils"
 
 function Drawer({
+  shouldScaleBackground = false,
   ...props
 }) {
-  return <DrawerPrimitive.Root data-slot="drawer" {...props} />;
+  // This app scrolls a nested `overflow-y-auto` div inside a fixed
+  // `h-dvh` shell (see components/elevare/app-shell.jsx), not
+  // `document.body`. vaul's background-scale effect locks/restores scroll
+  // math against `document.body` on the assumption that IT is the
+  // scrollable element — with our layout that assumption is wrong, and on
+  // close it can leave a stray inline height/transform on `<body>`,
+  // producing a large blank scrollable area below the real page content.
+  // Disabling it (default here, still overridable per-usage) stops vaul
+  // from touching `document.body` at all.
+  return <DrawerPrimitive.Root data-slot="drawer" shouldScaleBackground={shouldScaleBackground} {...props} />;
 }
 
 function DrawerTrigger({

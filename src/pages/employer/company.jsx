@@ -47,7 +47,7 @@ const EmployerCompanyPage = () => {
         <AddCompanyDrawer fetchCompanies={fn} />
       </div>
 
-      {loading !== false && <BarLoader width={"100%"} color="#7c5cff" />}
+      {loading !== false && <BarLoader width={"100%"} color="var(--primary)" />}
 
       {loading === false && (
         <div className="hairline overflow-hidden rounded-xl bg-surface/60">

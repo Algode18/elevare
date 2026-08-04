@@ -239,7 +239,7 @@ const EmployerJobsPage = () => {
   const toggleCollapsed = (key) => setCollapsed((c) => ({ ...c, [key]: !c[key] }));
 
   if (!isLoaded || loadingJobs) {
-    return <BarLoader className="mb-4" width={"100%"} color="#7c5cff" />;
+    return <BarLoader className="mb-4" width={"100%"} color="var(--primary)" />;
   }
 
   const noJobsAtAll = !jobs?.length;
@@ -247,16 +247,16 @@ const EmployerJobsPage = () => {
   return (
     <div>
       <BackButton fallbackTo="/employer/dashboard" label="Back to Dashboard" />
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-3xl">Manage Jobs</h1>
+      <div className="mb-6 flex flex-row items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="font-display text-2xl sm:text-3xl">Manage Jobs</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Track hiring performance across every role you've posted.
           </p>
         </div>
         <Link
           to="/employer/post-job"
-          className="rounded-md bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+          className="inline-flex shrink-0 items-center justify-center rounded-md bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
         >
           Post a job
         </Link>
@@ -282,8 +282,8 @@ const EmployerJobsPage = () => {
         <>
           {/* Toolbar: search, filters, sort, view toggle */}
           <div className="hairline mb-6 flex flex-col gap-3 rounded-xl bg-surface p-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="relative min-w-[220px] flex-1">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <div className="relative w-full sm:min-w-[220px] sm:flex-1">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   className="pl-8"
@@ -293,90 +293,92 @@ const EmployerJobsPage = () => {
                 />
               </div>
 
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="all">All statuses</SelectItem>
-                    <SelectItem value="open">Open</SelectItem>
-                    <SelectItem value="closed">Closed</SelectItem>
-                    <SelectItem value="expired">Expired</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-
-              {companyOptions.length > 1 && (
-                <Select value={companyFilter} onValueChange={setCompanyFilter}>
-                  <SelectTrigger className="w-[160px]">
-                    <SelectValue placeholder="Company" />
+              <div className="grid grid-cols-2 gap-2 sm:contents">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-[140px]">
+                    <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      <SelectItem value="all">All companies</SelectItem>
-                      {companyOptions.map(([id, name]) => (
-                        <SelectItem key={id} value={String(id)}>
-                          {name}
+                      <SelectItem value="all">All statuses</SelectItem>
+                      <SelectItem value="open">Open</SelectItem>
+                      <SelectItem value="closed">Closed</SelectItem>
+                      <SelectItem value="expired">Expired</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+
+                {companyOptions.length > 1 && (
+                  <Select value={companyFilter} onValueChange={setCompanyFilter}>
+                    <SelectTrigger className="w-full sm:w-[160px]">
+                      <SelectValue placeholder="Company" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="all">All companies</SelectItem>
+                        {companyOptions.map(([id, name]) => (
+                          <SelectItem key={id} value={String(id)}>
+                            {name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                )}
+
+                {locationOptions.length > 1 && (
+                  <Select value={locationFilter} onValueChange={setLocationFilter}>
+                    <SelectTrigger className="w-full sm:w-[150px]">
+                      <SelectValue placeholder="Location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="all">All locations</SelectItem>
+                        {locationOptions.map((loc) => (
+                          <SelectItem key={loc} value={loc}>
+                            {loc}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                )}
+
+                {typeOptions.length > 1 && (
+                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <SelectTrigger className="w-full sm:w-[150px]">
+                      <SelectValue placeholder="Job Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="all">All types</SelectItem>
+                        {typeOptions.map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {t}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                )}
+
+                <Select value={sort} onValueChange={setSort}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Sort" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {SORT_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
                         </SelectItem>
                       ))}
                     </SelectGroup>
                   </SelectContent>
                 </Select>
-              )}
+              </div>
 
-              {locationOptions.length > 1 && (
-                <Select value={locationFilter} onValueChange={setLocationFilter}>
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="Location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="all">All locations</SelectItem>
-                      {locationOptions.map((loc) => (
-                        <SelectItem key={loc} value={loc}>
-                          {loc}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              )}
-
-              {typeOptions.length > 1 && (
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="Job Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="all">All types</SelectItem>
-                      {typeOptions.map((t) => (
-                        <SelectItem key={t} value={t}>
-                          {t}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              )}
-
-              <Select value={sort} onValueChange={setSort}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Sort" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {SORT_OPTIONS.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-
-              <div className="ml-auto flex items-center gap-1 rounded-md border border-border p-0.5">
+              <div className="hidden items-center justify-end gap-1 rounded-md border border-border p-0.5 md:flex md:ml-auto">
                 <button
                   type="button"
                   onClick={() => setView("grid")}
@@ -550,7 +552,7 @@ const CollapsibleSection = ({ title, collapsed, onToggle, children }) => (
 );
 
 const ListHeader = () => (
-  <div className="-mx-1 overflow-x-auto px-1">
+  <div className="hidden md:-mx-1 md:block md:overflow-x-auto md:px-1">
     <div
       className="grid min-w-[880px] items-center gap-5 px-3 pb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
       style={{ gridTemplateColumns: LIST_GRID_TEMPLATE }}
@@ -588,8 +590,8 @@ const JobGrid = ({ entries, view, selectedIds, onToggleSelect, onDeleted, onRefr
   }
 
   return (
-    <div className="-mx-1 overflow-x-auto px-1">
-      <div className="flex min-w-[880px] flex-col gap-2">
+    <div className="md:-mx-1 md:overflow-x-auto md:px-1">
+      <div className="flex flex-col gap-3 md:min-w-[880px] md:gap-3">
         {entries.map(({ job, status, metrics, lastApplicationAt, attentionReasons }) => (
           <ManageJobCard
             key={job.id}

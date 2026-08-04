@@ -1,11 +1,15 @@
 import { Link, useSearchParams } from "react-router-dom";
+import { useUser } from "@clerk/react";
 import { ArrowUpRight, Mail } from "lucide-react";
 
-const columns = [
+// "Jobs"/"Companies" point into the candidate workspace once signed in,
+// same pattern as the hero/search-bar links on the landing page — a
+// signed-in candidate never gets routed back to the public listing pages.
+const getColumns = (isSignedIn) => [
   {
     title: "Product",
     links: [
-      { label: "Jobs", to: "/jobs" },
+      { label: "Jobs", to: isSignedIn ? "/dashboard/jobs" : "/jobs" },
       { label: "Companies", to: "/companies" },
       { label: "Features", to: "/#features" },
     ],
@@ -42,17 +46,17 @@ const SUPPORT_EMAIL = "support.elevare.app@gmail.com";
 // links back into the employer console instead.
 const EmployerFooter = () => (
   <footer className="border-t border-border/60 bg-surface/40">
-    <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-2.5">
+    <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 px-6 py-6 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
+      <div className="flex flex-col items-center gap-2.5 sm:flex-row">
         <div className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-gradient-to-br from-primary to-cyan text-primary-foreground text-[11px] font-bold">
           E
         </div>
-        <span className="text-xs text-muted-foreground">
+        <span className="max-w-xs text-xs text-muted-foreground sm:max-w-none">
           You're viewing this listing as an employer — this is what candidates see.
         </span>
       </div>
 
-      <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
+      <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs">
         {employerLinks.map((l) => (
           <Link key={l.label} to={l.to} className="text-foreground/80 transition-colors hover:text-foreground">
             {l.label}
@@ -66,66 +70,74 @@ const EmployerFooter = () => (
 );
 
 // Full marketing footer shown to candidates and guests everywhere else.
-const CandidateFooter = () => (
-  <footer className="border-t border-border/60 bg-background">
-    <div className="mx-auto max-w-7xl px-6 py-20 sm:py-24">
-      <div className="grid gap-14 lg:grid-cols-[1fr_1.5fr] lg:gap-24">
-        {/* Brand */}
-        <div className="max-w-xs">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-gradient-to-br from-primary to-cyan text-primary-foreground text-xs font-bold">
-              E
-            </div>
-            <span className="font-display text-xl leading-none">Elevare</span>
-          </Link>
-          <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
-            The AI-powered career platform for people who care about their work.
-          </p>
+const CandidateFooter = () => {
+  const { isSignedIn } = useUser();
+  const columns = getColumns(isSignedIn);
 
-          <a
-            href={`mailto:${SUPPORT_EMAIL}`}
-            className="group mt-7 inline-flex items-center gap-2 text-sm text-foreground/80 transition-colors hover:text-foreground"
-          >
-            <Mail className="h-4 w-4 text-muted-foreground" />
-            {SUPPORT_EMAIL}
-            <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-          </a>
-        </div>
-
-        {/* Link columns */}
-        <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3">
-          {columns.map((c) => (
-            <div key={c.title}>
-              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-                {c.title}
+  return (
+    <footer className="border-t border-border/60 bg-footer-bg">
+      <div className="mx-auto max-w-7xl px-6 py-20 sm:py-24">
+        <div className="grid gap-14 lg:grid-cols-[1fr_1.5fr] lg:gap-24">
+          {/* Brand */}
+          <div className="max-w-xs">
+            <Link to="/" className="flex items-center gap-2">
+              <div className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-gradient-to-br from-primary to-cyan text-primary-foreground text-xs font-bold">
+                E
               </div>
-              <ul className="mt-5 space-y-3.5 text-sm">
-                {c.links.map((l) => (
-                  <li key={l.label}>
-                    <Link
-                      className="text-foreground/80 transition-colors hover:text-foreground"
-                      to={l.to}
-                    >
-                      {l.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </div>
+              <span className="font-display text-xl leading-none">Elevare</span>
+            </Link>
+            <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
+              A modern career platform connecting talented people with great companies.
+            </p>
 
-      {/* <div className="mt-16 flex flex-col items-center gap-4 border-t border-border/60 pt-8 text-xs text-muted-foreground sm:flex-row sm:justify-between">
-        <span>© Elevare {new Date().getFullYear()}. All rights reserved.</span>
-        <div className="flex items-center gap-5">
-          <Link to="/terms" className="hover:text-foreground">Terms and Conditions</Link>
-          <Link to="/contact" className="hover:text-foreground">Contact</Link>
+            <a
+              href={`mailto:${SUPPORT_EMAIL}`}
+              className="group mt-7 inline-flex items-center gap-2 text-sm text-foreground/80 transition-colors hover:text-foreground"
+            >
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              {SUPPORT_EMAIL}
+              <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </a>
+          </div>
+
+          {/* Link columns */}
+          <div className="grid grid-cols-3 gap-x-4 gap-y-8 sm:gap-x-8 sm:gap-y-10">
+            {columns.map((c, i) => {
+              const align = i === 0 ? "text-left" : i === 1 ? "text-center" : "text-right";
+              return (
+                <div key={c.title} className={align}>
+                  <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                    {c.title}
+                  </div>
+                  <ul className={`mt-5 space-y-3.5 text-sm ${i === 2 ? "flex flex-col items-end" : i === 1 ? "flex flex-col items-center" : ""}`}>
+                    {c.links.map((l) => (
+                      <li key={l.label}>
+                        <Link
+                          className="text-foreground/80 transition-colors hover:text-foreground"
+                          to={l.to}
+                        >
+                          {l.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div> */}
-    </div>
-  </footer>
-);
+
+        {/* <div className="mt-16 flex flex-col items-center gap-4 border-t border-border/60 pt-8 text-xs text-muted-foreground sm:flex-row sm:justify-between">
+          <span>© Elevare {new Date().getFullYear()}. All rights reserved.</span>
+          <div className="flex items-center gap-5">
+            <Link to="/terms" className="hover:text-foreground">Terms and Conditions</Link>
+            <Link to="/contact" className="hover:text-foreground">Contact</Link>
+          </div>
+        </div> */}
+      </div>
+    </footer>
+  );
+};
 
 const SiteFooter = () => {
   const [searchParams] = useSearchParams();

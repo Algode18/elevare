@@ -58,3 +58,30 @@ export const useTheme = () => {
 
   return context
 }
+
+// Resolves "system" down to an actual "light" | "dark" value. Third-party
+// widgets (like the markdown editor on Post Job / Job Details) don't know
+// about our .dark class — they need a literal mode string, so components
+// that embed them should read this instead of the raw theme setting.
+export const useResolvedTheme = () => {
+  const { theme } = useTheme();
+  const [resolved, setResolved] = useState(() =>
+    theme === "system"
+      ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+      : theme
+  );
+
+  useEffect(() => {
+    if (theme !== "system") {
+      setResolved(theme);
+      return;
+    }
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const update = () => setResolved(mq.matches ? "dark" : "light");
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, [theme]);
+
+  return resolved;
+};

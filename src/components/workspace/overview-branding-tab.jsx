@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -21,6 +21,42 @@ import useFetch from "@/hooks/use-fetch";
 import { updateCompanyProfile, uploadCompanyAsset } from "@/api/apiCompanies";
 
 const COMPANY_SIZES = ["1-10", "11-50", "51-200", "201-1000", "1000+"];
+
+const INDUSTRIES = [
+  "IT Services & Consulting",
+  "Software & Internet",
+  "Enterprise Technology & IT Services",
+  "Fintech",
+  "Financial Services & Banking",
+  "Insurance",
+  "E-commerce & Retail",
+  "Healthcare & Life Sciences",
+  "Pharmaceuticals & Biotechnology",
+  "Manufacturing",
+  "Automotive",
+  "Aerospace & Defense",
+  "Energy & Utilities",
+  "Oil & Gas",
+  "Telecommunications",
+  "Media & Entertainment",
+  "Gaming",
+  "Education & EdTech",
+  "Professional Services & Consulting",
+  "Real Estate & PropTech",
+  "Construction & Engineering",
+  "Logistics & Supply Chain",
+  "Travel & Hospitality",
+  "Food & Beverage",
+  "Agriculture & AgTech",
+  "Non-profit & NGO",
+  "Government & Public Sector",
+  "Legal Services",
+  "Human Resources & Staffing",
+  "Marketing & Advertising",
+  "Cybersecurity",
+  "Semiconductors & Hardware",
+  "Other",
+];
 
 const schema = z.object({
   industry: z.string().optional().or(z.literal("")),
@@ -47,6 +83,9 @@ const schema = z.object({
 const OverviewBrandingTab = ({ company, onUpdated }) => {
   const logoInputRef = useRef(null);
   const bannerInputRef = useRef(null);
+  const [isOtherIndustry, setIsOtherIndustry] = useState(
+    !!company?.industry && !INDUSTRIES.slice(0, -1).includes(company.industry)
+  );
 
   const {
     register,
@@ -65,8 +104,8 @@ const OverviewBrandingTab = ({ company, onUpdated }) => {
       about: company?.about || "",
       mission: company?.mission || "",
       vision: company?.vision || "",
-      brand_color: company?.brand_color || "#7c5cff",
-      accent_color: company?.accent_color || "#22d3ee",
+      brand_color: company?.brand_color || "#6F56F8",
+      accent_color: company?.accent_color || "#4F8EF7",
     },
   });
 
@@ -101,7 +140,7 @@ const OverviewBrandingTab = ({ company, onUpdated }) => {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-      {(saving || uploading) && <BarLoader width={"100%"} color="#7c5cff" />}
+      {(saving || uploading) && <BarLoader width={"100%"} color="var(--primary)" />}
 
       {/* Branding — logo / banner upload */}
       <section>
@@ -110,12 +149,12 @@ const OverviewBrandingTab = ({ company, onUpdated }) => {
           Shown on your public company page and every job listing.
         </p>
 
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-nowrap items-center gap-3 overflow-x-auto sm:gap-4">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             {company?.logo_url ? (
-              <img src={company.logo_url} alt="" className="h-14 w-14 rounded-lg border border-border object-contain" />
+              <img src={company.logo_url} alt="" className="h-12 w-12 rounded-lg border border-border object-contain sm:h-14 sm:w-14" />
             ) : (
-              <div className="grid h-14 w-14 place-items-center rounded-lg border border-dashed border-border text-muted-foreground">
+              <div className="grid h-12 w-12 place-items-center rounded-lg border border-dashed border-border text-muted-foreground sm:h-14 sm:w-14">
                 <ImagePlus className="h-5 w-5" />
               </div>
             )}
@@ -139,11 +178,11 @@ const OverviewBrandingTab = ({ company, onUpdated }) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             {company?.banner_url ? (
-              <img src={company.banner_url} alt="" className="h-14 w-24 rounded-lg border border-border object-cover" />
+              <img src={company.banner_url} alt="" className="h-12 w-20 rounded-lg border border-border object-cover sm:h-14 sm:w-24" />
             ) : (
-              <div className="grid h-14 w-24 place-items-center rounded-lg border border-dashed border-border text-muted-foreground">
+              <div className="grid h-12 w-20 place-items-center rounded-lg border border-dashed border-border text-muted-foreground sm:h-14 sm:w-24">
                 <ImagePlus className="h-5 w-5" />
               </div>
             )}
@@ -173,14 +212,14 @@ const OverviewBrandingTab = ({ company, onUpdated }) => {
             <Label>Brand color</Label>
             <div className="mt-1.5 flex items-center gap-2">
               <input type="color" className="h-9 w-10 shrink-0 rounded border border-border bg-transparent" {...register("brand_color")} />
-              <Input {...register("brand_color")} placeholder="#7c5cff" />
+              <Input {...register("brand_color")} placeholder="#6F56F8" />
             </div>
           </div>
           <div>
             <Label>Accent color</Label>
             <div className="mt-1.5 flex items-center gap-2">
               <input type="color" className="h-9 w-10 shrink-0 rounded border border-border bg-transparent" {...register("accent_color")} />
-              <Input {...register("accent_color")} placeholder="#22d3ee" />
+              <Input {...register("accent_color")} placeholder="#4F8EF7" />
             </div>
           </div>
         </div>
@@ -196,7 +235,47 @@ const OverviewBrandingTab = ({ company, onUpdated }) => {
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label>Industry</Label>
-            <Input className="mt-1.5" placeholder="e.g. Fintech" {...register("industry")} />
+            <Controller
+              name="industry"
+              control={control}
+              render={({ field }) => (
+                <>
+                  <Select
+                    value={isOtherIndustry ? "Other" : field.value || ""}
+                    onValueChange={(val) => {
+                      if (val === "Other") {
+                        setIsOtherIndustry(true);
+                        field.onChange("");
+                      } else {
+                        setIsOtherIndustry(false);
+                        field.onChange(val);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="mt-1.5 w-full">
+                      <SelectValue placeholder="Select industry" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {INDUSTRIES.map((ind) => (
+                          <SelectItem key={ind} value={ind}>
+                            {ind}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                  {isOtherIndustry && (
+                    <Input
+                      className="mt-2"
+                      placeholder="Enter your industry"
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    />
+                  )}
+                </>
+              )}
+            />
           </div>
           <div>
             <Label>Founded year</Label>
@@ -260,7 +339,7 @@ const OverviewBrandingTab = ({ company, onUpdated }) => {
         </div>
       </section>
 
-      <div className="flex items-center gap-3 border-t border-border/60 pt-5">
+      <div className="flex items-center justify-end gap-3 border-t border-border/60 pt-5">
         <Button type="submit" disabled={saving || !isDirty}>
           Save changes
         </Button>

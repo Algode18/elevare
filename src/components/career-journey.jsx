@@ -19,7 +19,7 @@ const steps = [
     employer: { icon: Building2, title: "Create Company", body: "Add your company details and branding." },
   },
   {
-    candidate: { icon: Search, title: "Discover Jobs", body: "Browse AI-matched roles built around you." },
+    candidate: { icon: Search, title: "Discover Jobs", body: "Search and filter roles built around your skills." },
     employer: { icon: FilePlus2, title: "Publish Job", body: "Post a role in minutes, structured and clear." },
   },
   {
@@ -53,8 +53,8 @@ const NodeCard = ({ step, align }) => {
       </div>
       <div>
         <div className="font-semibold">{step.title}</div>
-        <div className="grid transition-all duration-300 grid-rows-[0fr] group-hover/row:grid-rows-[1fr]">
-          <p className="overflow-hidden text-sm text-muted-foreground opacity-0 transition-opacity duration-300 group-hover/row:opacity-100">
+        <div className="grid transition-all duration-300 grid-rows-[1fr] md:grid-rows-[0fr] md:group-hover/row:grid-rows-[1fr]">
+          <p className="overflow-hidden text-sm text-muted-foreground opacity-100 transition-opacity duration-300 md:opacity-0 md:group-hover/row:opacity-100">
             → {step.body}
           </p>
         </div>
@@ -72,12 +72,12 @@ const CareerJourney = () => {
   const lineScale = useTransform(scrollYProgress, [0, 1], [0, 1]);
 
   return (
-    <section className="mx-auto max-w-5xl px-6 py-24">
+    <section className="mx-auto max-w-5xl px-6 py-16">
       <div className="mb-14 max-w-2xl">
         <div className="text-xs font-mono uppercase tracking-widest text-primary">Process</div>
-        <h2 className="mt-3 font-display text-5xl">Your Career Journey.</h2>
+        <h2 className="mt-3 font-display text-5xl">How Elevare Works</h2>
         <p className="mt-3 text-sm text-muted-foreground">
-          One connected path — every step for candidates has a mirrored step for employers.
+          Simple steps from discovering jobs to getting hired.
         </p>
       </div>
 

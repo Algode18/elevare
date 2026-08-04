@@ -3,7 +3,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { BarLoader } from "react-spinners";
-import { State } from "country-state-city";
+import OfficeLocationSelect from "@/components/office-location-select";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import useFetch from "@/hooks/use-fetch";
-import { updateCompanyProfile } from "@/api/apiCompanies";
+import { updateCompanyProfile, getCompanyOffices } from "@/api/apiCompanies";
 
 // lucide-react 1.0 removed all brand/logo icons (GitHub, Twitter, LinkedIn,
 // Instagram, YouTube, etc.) for trademark reasons — see lucide.dev/guide/version-1.
@@ -26,11 +26,6 @@ import { updateCompanyProfile } from "@/api/apiCompanies";
 const IconLinkedin = (props) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M4.98 3.5C4.98 4.88 3.88 6 2.5 6S0 4.88 0 3.5 1.1 1 2.48 1s2.5 1.12 2.5 2.5zM.24 8.25h4.48V23H.24V8.25zM8.24 8.25h4.29v2.01h.06c.6-1.13 2.06-2.32 4.24-2.32 4.54 0 5.37 2.99 5.37 6.87V23h-4.48v-6.6c0-1.57-.03-3.6-2.2-3.6-2.2 0-2.54 1.72-2.54 3.49V23H8.24V8.25z" />
-  </svg>
-);
-const IconGithub = (props) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.69-1.28-1.69-1.04-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.7 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.2-1.49 3.18-1.18 3.18-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.43-2.7 5.41-5.27 5.69.41.36.78 1.08.78 2.17 0 1.57-.01 2.83-.01 3.22 0 .31.21.67.8.56A10.99 10.99 0 0 0 23.5 12c0-6.35-5.15-11.5-11.5-11.5z" />
   </svg>
 );
 const IconX = (props) => (
@@ -67,7 +62,6 @@ const schema = z.object({
     .optional()
     .transform((v) => (v === "" || v === undefined ? null : Number(v))),
   linkedin: z.string().optional().or(z.literal("")),
-  github: z.string().optional().or(z.literal("")),
   twitter: z.string().optional().or(z.literal("")),
   instagram: z.string().optional().or(z.literal("")),
   youtube: z.string().optional().or(z.literal("")),
@@ -98,7 +92,6 @@ const HiringSocialTab = ({ company, onUpdated }) => {
       default_employment_type: company?.default_employment_type || "",
       default_expiry_days: company?.default_expiry_days ?? 30,
       linkedin: company?.linkedin || "",
-      github: company?.github || "",
       twitter: company?.twitter || "",
       instagram: company?.instagram || "",
       youtube: company?.youtube || "",
@@ -108,6 +101,13 @@ const HiringSocialTab = ({ company, onUpdated }) => {
   const { loading: saving, data: saved, fn: fnSave } = useFetch(updateCompanyProfile, {
     company_id: company?.id,
   });
+
+  const { data: offices, fn: fnOffices } = useFetch(getCompanyOffices, { company_id: company?.id });
+
+  useEffect(() => {
+    if (company?.id) fnOffices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [company?.id]);
 
   const onSubmit = (values) => fnSave(values);
 
@@ -121,7 +121,7 @@ const HiringSocialTab = ({ company, onUpdated }) => {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-      {saving && <BarLoader width={"100%"} color="#7c5cff" />}
+      {saving && <BarLoader width={"100%"} color="var(--primary)" />}
 
       <section>
         <h2 className="mb-1 text-sm font-semibold">Hiring Preferences</h2>
@@ -136,20 +136,14 @@ const HiringSocialTab = ({ company, onUpdated }) => {
               name="default_location"
               control={control}
               render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className="mt-1.5 w-full">
-                    <SelectValue placeholder="Select location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {State.getStatesOfCountry("IN").map(({ name }) => (
-                        <SelectItem key={name} value={name}>
-                          {name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                <OfficeLocationSelect
+                  offices={offices}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Select location"
+                  className="mt-1.5 w-full"
+                  addOfficeHref={`/employer/company/${company?.id}/workspace?tab=offices`}
+                />
               )}
             />
           </div>
@@ -239,16 +233,15 @@ const HiringSocialTab = ({ company, onUpdated }) => {
           Shown on your public company page. Paste full profile URLs.
         </p>
 
-        <div className="space-y-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <SocialField icon={IconLinkedin} placeholder="https://linkedin.com/company/..." {...register("linkedin")} />
-          <SocialField icon={IconGithub} placeholder="https://github.com/..." {...register("github")} />
           <SocialField icon={IconX} placeholder="https://x.com/..." {...register("twitter")} />
           <SocialField icon={IconInstagram} placeholder="https://instagram.com/..." {...register("instagram")} />
           <SocialField icon={IconYoutube} placeholder="https://youtube.com/@..." {...register("youtube")} />
         </div>
       </section>
 
-      <div className="flex items-center gap-3 border-t border-border/60 pt-5">
+      <div className="flex items-center justify-end gap-3 border-t border-border/60 pt-5">
         <Button type="submit" disabled={saving || !isDirty}>
           Save changes
         </Button>

@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useUser } from "@clerk/react";
 import MDEditor from "@uiw/react-md-editor";
+import { useResolvedTheme } from "@/components/theme-provider";
 import { BarLoader } from "react-spinners";
 import {
+  ArrowLeft,
   Briefcase,
   MapPin,
   Clock,
@@ -12,10 +14,11 @@ import {
   Share2,
   Flag,
   Building2,
-  ExternalLink,
   Users,
-  ChevronDown,
   Wallet,
+  BadgeCheck,
+  DoorOpen,
+  DoorClosed,
 } from "lucide-react";
 import { getSingleJob, saveJob } from "@/api/apiJobs";
 import useFetch from "@/hooks/use-fetch";
@@ -43,8 +46,9 @@ const timeAgo = (dateStr) => {
 // That keeps the "header stays put, body scrolls under it" behaviour
 // consistent in both places without this component needing to know
 // which one it's in.
-const JobDetailsPanel = ({ jobId, onNotInterested = () => {} }) => {
+const JobDetailsPanel = ({ jobId, onNotInterested = () => {}, onBack = () => {} }) => {
   const { user, isSignedIn } = useUser();
+  const resolvedTheme = useResolvedTheme();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
 
@@ -72,7 +76,7 @@ const JobDetailsPanel = ({ jobId, onNotInterested = () => {} }) => {
 
   const handleSaveJob = () => {
     if (!isSignedIn) {
-      navigate("/?sign-in=true");
+      navigate("/sign-in");
       return;
     }
     fnSaveJob({ user_id: user.id, job_id: jobId });
@@ -96,7 +100,7 @@ const JobDetailsPanel = ({ jobId, onNotInterested = () => {} }) => {
   if (loadingJob !== false || !job) {
     return (
       <div className="p-6">
-        <BarLoader width={"100%"} color="#7c5cff" />
+        <BarLoader width={"100%"} color="var(--primary)" />
         <div className="mt-4 animate-pulse space-y-3">
           <div className="h-6 w-2/3 rounded bg-surface-2" />
           <div className="h-4 w-1/3 rounded bg-surface-2" />
@@ -115,55 +119,65 @@ const JobDetailsPanel = ({ jobId, onNotInterested = () => {} }) => {
           (sticky to whichever ancestor is actually scrolling) while the
           body underneath scrolls. */}
       <div className="sticky top-0 z-10 border-b border-border bg-surface/95 p-6 pb-4 backdrop-blur-sm">
-        <div className="flex items-start justify-between gap-4">
+        <button
+          type="button"
+          onClick={onBack}
+          className="mb-4 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground sm:hidden"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to Discover
+        </button>
+
+        <div className="flex items-start gap-3">
+          {job.company?.logo_url ? (
+            <img src={job.company.logo_url} className="h-14 w-14 shrink-0 rounded-xl bg-surface-2 object-contain p-1.5" alt="" />
+          ) : (
+            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-primary to-cyan text-primary-foreground">
+              <Building2 className="h-6 w-6" />
+            </div>
+          )}
           <div className="min-w-0">
-            <h2 className="font-display text-2xl leading-tight sm:text-[1.75rem]">{job.title}</h2>
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+            <h2 className="font-display font-extrabold text-2xl leading-tight">{job.title}</h2>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
               {job.company?.name && (
-                <Link
-                  to={`/companies/${job.company_id}`}
-                  className="flex items-center gap-1 text-primary underline-offset-2 hover:underline"
-                >
-                  {job.company.name} <ExternalLink className="h-3 w-3" />
-                </Link>
-              )}
-              <span>|</span>
-              <span>{job.location || "Remote"}</span>
-              {job.salary_range && (
                 <>
-                  <span>|</span>
-                  <span>{job.salary_range}</span>
+                  <Link
+                    to={`/companies/${job.company_id}`}
+                    className="flex items-center gap-1 text-primary hover:underline"
+                  >
+                    <Building2 className="h-3.5 w-3.5" /> {job.company.name}
+                  </Link>
+                  {job.company?.verification_status === "verified" && (
+                    <BadgeCheck className="h-3.5 w-3.5 text-cyan" aria-label="Verified company" />
+                  )}
+                  <span aria-hidden>•</span>
                 </>
               )}
+              <span className="flex items-center gap-1">
+                <MapPin className="h-3.5 w-3.5" /> {job.location || "Remote"}
+              </span>
               {posted && (
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3.5 w-3.5" /> {posted}
-                </span>
+                <>
+                  <span aria-hidden>•</span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" /> {posted}
+                  </span>
+                </>
               )}
             </div>
           </div>
-          {job.company?.logo_url ? (
-            <img src={job.company.logo_url} className="h-11 w-11 shrink-0 rounded-xl bg-white/5 object-contain p-1.5" alt="" />
-          ) : (
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-primary to-cyan text-primary-foreground">
-              <Building2 className="h-5 w-5" />
-            </div>
-          )}
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="mt-5 flex flex-wrap items-center gap-3">
           {isSignedIn && !isOwner && (
-            <div className="min-w-[170px]">
-              <ApplyJobDrawer
-                job={job}
-                user={user}
-                fetchJob={fnJob}
-                applied={job?.applications?.find((ap) => ap.candidate_id === user.id)}
-              />
-            </div>
+            <ApplyJobDrawer
+              job={job}
+              user={user}
+              fetchJob={fnJob}
+              applied={job?.applications?.find((ap) => ap.candidate_id === user.id)}
+            />
           )}
           {!isSignedIn && (
-            <Link to="/?sign-in=true" className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
+            <Link to="/sign-in" className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
               Sign in to Apply
             </Link>
           )}
@@ -173,27 +187,27 @@ const JobDetailsPanel = ({ jobId, onNotInterested = () => {} }) => {
             onClick={handleSaveJob}
             disabled={loadingSaveJob}
             aria-label="Save job"
-            className="grid h-9 w-9 place-items-center rounded-lg bg-surface-2 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+            className="hairline grid h-11 w-11 place-items-center rounded-md transition-colors hover:border-primary/50 disabled:opacity-50"
           >
-            <Bookmark className={`h-4 w-4 ${saved ? "fill-primary text-primary" : ""}`} />
+            <Bookmark className={`h-4 w-4 transition-transform duration-300 ${saved ? "fill-primary rotate-12" : "text-muted-foreground"}`} />
           </button>
 
           <button
             type="button"
             onClick={() => onNotInterested(jobId)}
             aria-label="Not interested"
-            className="grid h-9 w-9 place-items-center rounded-lg bg-surface-2 text-muted-foreground transition-colors hover:text-foreground"
+            className="hairline grid h-11 w-11 place-items-center rounded-md transition-colors hover:border-primary/50"
           >
-            <ThumbsDown className="h-4 w-4" />
+            <ThumbsDown className="h-4 w-4 text-muted-foreground" />
           </button>
 
           <button
             type="button"
             onClick={handleShare}
             aria-label="Share job"
-            className="grid h-9 w-9 place-items-center rounded-lg bg-surface-2 text-muted-foreground transition-colors hover:text-foreground"
+            className="hairline grid h-11 w-11 place-items-center rounded-md transition-colors hover:border-primary/50"
           >
-            <Share2 className="h-4 w-4" />
+            <Share2 className="h-4 w-4 text-muted-foreground" />
           </button>
           {copied && <span className="text-xs text-muted-foreground">Link copied</span>}
 
@@ -206,10 +220,28 @@ const JobDetailsPanel = ({ jobId, onNotInterested = () => {} }) => {
             </Link>
           )}
         </div>
+
+        {/* Applicant count + hiring status as compact pills, right under the
+            action row — same placement and colors as the public job page. */}
+        <div className="mt-4 flex flex-wrap gap-2 text-xs">
+          <span className="hairline inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-muted-foreground">
+            <Users className="h-3.5 w-3.5" />
+            {job?.applications?.length || 0} Applicants
+          </span>
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium ${
+              job?.isOpen ? "bg-tag-hiring-bg text-tag-hiring-text" : "bg-tag-closed-bg text-tag-closed-text"
+            }`}
+          >
+            {job?.isOpen ? <DoorOpen className="h-3.5 w-3.5" /> : <DoorClosed className="h-3.5 w-3.5" />}
+            {job?.isOpen ? "Hiring Now" : "Closed"}
+          </span>
+        </div>
       </div>
 
       {/* Body — flows normally underneath the sticky header */}
       <div className="flex flex-col gap-6 p-6">
+        {(job.salary_range || job.job_type || job.work_mode) && (
         <div className="rounded-xl border border-border p-4">
           <h3 className="text-sm font-semibold">Job details</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
@@ -219,28 +251,53 @@ const JobDetailsPanel = ({ jobId, onNotInterested = () => {} }) => {
             {job.salary_range && (
               <div className="flex items-center gap-3 text-sm">
                 <Wallet className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="flex flex-1 items-center justify-between rounded-lg bg-surface-2 px-3 py-2">
+                <span className="flex flex-1 items-center rounded-lg bg-surface-2 px-3 py-2">
                   {job.salary_range}
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                 </span>
               </div>
             )}
-            <div className="flex items-center gap-3 text-sm">
-              <Briefcase className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <span className="flex flex-1 items-center justify-between rounded-lg bg-surface-2 px-3 py-2">
-                {job.job_type || "Full-time"}
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-              </span>
-            </div>
+            {job.job_type && (
+              <div className="flex items-center gap-3 text-sm">
+                <Briefcase className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="flex flex-1 items-center rounded-lg bg-surface-2 px-3 py-2">
+                  {job.job_type}
+                </span>
+              </div>
+            )}
             {job.work_mode && (
               <div className="flex items-center gap-3 text-sm">
                 <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="flex flex-1 items-center justify-between rounded-lg bg-surface-2 px-3 py-2">
+                <span className="flex flex-1 items-center rounded-lg bg-surface-2 px-3 py-2">
                   {job.work_mode}
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                 </span>
               </div>
             )}
+          </div>
+        </div>
+        )}
+
+        <div>
+          <h3 className="mb-2 text-base font-semibold">About the job</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">{job.description}</p>
+        </div>
+
+        {Array.isArray(job.skills) && job.skills.length > 0 && (
+          <div>
+            <h3 className="mb-2 text-base font-semibold">Skills required</h3>
+            <div className="flex flex-wrap gap-2">
+              {job.skills.map((s) => (
+                <span key={s} className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div>
+          <h3 className="mb-2 text-base font-semibold">What we are looking for</h3>
+          <div data-color-mode="dark">
+            <MDEditor.Markdown source={job.requirements} className="bg-transparent text-sm" data-color-mode={resolvedTheme} />
           </div>
         </div>
 
@@ -256,44 +313,12 @@ const JobDetailsPanel = ({ jobId, onNotInterested = () => {} }) => {
           </div>
         )}
 
-        <div>
-          <h3 className="mb-2 text-base font-semibold">Full job description</h3>
-          <p className="text-sm leading-relaxed text-muted-foreground">{job.description}</p>
-        </div>
-
-        {Array.isArray(job.skills) && job.skills.length > 0 && (
-          <div>
-            <h3 className="mb-2 text-base font-semibold">Required skills</h3>
-            <div className="flex flex-wrap gap-2">
-              {job.skills.map((s) => (
-                <span key={s} className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">
-                  {s}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div>
-          <h3 className="mb-2 text-base font-semibold">What we're looking for</h3>
-          <div data-color-mode="dark">
-            <MDEditor.Markdown source={job.requirements} className="bg-transparent text-sm" />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 border-t border-border pt-4 text-sm text-muted-foreground">
-          <Briefcase className="h-4 w-4" /> {job.applications?.length || 0} applicants
-          <span className={`ml-2 rounded-full px-2.5 py-1 text-xs ${job.isOpen ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
-            {job.isOpen ? "Open" : "Closed"}
-          </span>
-        </div>
-
-        <a
-          href={`mailto:support.elevare.app@gmail.com?subject=Reporting job: ${encodeURIComponent(job.title || "")}`}
+        <Link
+          to="/contact"
           className="flex w-fit items-center gap-2 text-xs text-muted-foreground hover:text-destructive"
         >
           <Flag className="h-3.5 w-3.5" /> Report job
-        </a>
+        </Link>
       </div>
     </div>
   );

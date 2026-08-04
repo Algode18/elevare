@@ -36,7 +36,7 @@ const Panel = ({ children, hoverBorder }) => (
     viewport={{ once: true, amount: 0.3 }}
     transition={{ duration: 0.6 }}
     whileHover={{ y: -4 }}
-    className={`group hairline relative flex flex-col gap-5 overflow-hidden rounded-2xl bg-surface/50 p-6 backdrop-blur transition-colors duration-300 ${hoverBorder}`}
+    className={`group hairline relative flex flex-col gap-3 overflow-hidden rounded-2xl bg-surface/50 p-4 backdrop-blur transition-colors duration-300 sm:gap-5 sm:p-6 ${hoverBorder}`}
   >
     {children}
   </motion.div>
@@ -58,7 +58,7 @@ const authFlow = ["Clerk", "Authentication", "JWT", "Secure Session", "Dashboard
 
 const FeaturesBento = () => {
   return (
-    <section className="mx-auto max-w-7xl px-6 py-24" id="features">
+    <section className="mx-auto max-w-7xl px-6 py-16" id="features">
       <div className="mb-14 max-w-2xl">
         <div className="text-xs font-mono uppercase tracking-widest text-primary">Platform</div>
         <h2 className="mt-3 font-display text-5xl">See it before you use it.</h2>
@@ -80,7 +80,7 @@ const FeaturesBento = () => {
             />
             <Badge className="bg-primary/10 text-primary">Your List</Badge>
           </div>
-          <div className="hairline flex min-h-[150px] flex-col justify-center gap-2 rounded-xl bg-background/60 p-4">
+          <div className="hairline flex min-h-[120px] flex-col justify-center gap-2 rounded-xl bg-background/60 p-3 sm:min-h-[150px] sm:p-4">
             {savedJobsSample.map((job) => (
               <div key={job.title} className="flex items-center justify-between text-xs">
                 <div>
@@ -105,7 +105,7 @@ const FeaturesBento = () => {
             />
             <Badge className="bg-cyan/10 text-cyan">Hiring Live</Badge>
           </div>
-          <div className="hairline flex min-h-[150px] flex-col justify-center rounded-xl bg-background/60 p-4">
+          <div className="hairline flex min-h-[120px] flex-col justify-center gap-2 rounded-xl bg-background/60 p-3 sm:min-h-[150px] sm:p-4">
             <div className="grid grid-cols-2 gap-3 text-center">
               <div>
                 <div className="text-lg font-semibold text-cyan">12</div>
@@ -130,20 +130,20 @@ const FeaturesBento = () => {
               icon={FileText}
               title="Resume Management"
               description="Is my resume ready to apply?"
-              iconClass="bg-gradient-to-br from-emerald-400/20 to-emerald-400/5 text-emerald-400"
+              iconClass="bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 text-emerald-600"
               glowClass="bg-emerald-400/30"
             />
-            <Badge className="bg-emerald-400/10 text-emerald-400">Attached to Applications</Badge>
+            <Badge className="bg-emerald-500/10 text-emerald-600">Attached to Applications</Badge>
           </div>
-          <div className="hairline flex min-h-[150px] flex-col justify-center rounded-xl bg-background/60 p-4">
+          <div className="hairline flex min-h-[120px] flex-col justify-center gap-2 rounded-xl bg-background/60 p-3 sm:min-h-[150px] sm:p-4">
             <div className="flex items-center justify-between text-xs">
               <span className="font-medium">Resume.pdf</span>
-              <span className="font-medium text-emerald-400">Uploaded</span>
+              <span className="font-medium text-emerald-600">Uploaded</span>
             </div>
             <div className="mt-3 flex items-center gap-2 text-[10px]">
               <span className="text-muted-foreground">Updated Today</span>
               <span className="h-1 w-1 rounded-full bg-muted-foreground" />
-              <span className="text-emerald-400">Ready to Apply</span>
+              <span className="text-emerald-600">Ready to Apply</span>
             </div>
             <p className="mt-3 text-[11px] text-muted-foreground">
               One upload — sent automatically with every application you submit.
@@ -158,12 +158,12 @@ const FeaturesBento = () => {
               icon={ListChecks}
               title="Application Tracking"
               description="Where is my application right now?"
-              iconClass="bg-gradient-to-br from-orange-400/20 to-orange-400/5 text-orange-400"
+              iconClass="bg-gradient-to-br from-orange-500/20 to-orange-500/5 text-orange-600"
               glowClass="bg-orange-400/30"
             />
-            <Badge className="bg-orange-400/10 text-orange-400">In Progress</Badge>
+            <Badge className="bg-orange-500/10 text-orange-600">In Progress</Badge>
           </div>
-          <div className="hairline flex min-h-[150px] flex-col justify-center rounded-xl bg-background/60 p-4">
+          <div className="hairline flex min-h-[120px] flex-col justify-center gap-2 rounded-xl bg-background/60 p-3 sm:min-h-[150px] sm:p-4">
             <div className="relative flex items-center justify-between px-1">
               <div className="absolute left-1 right-1 top-1/2 h-px -translate-y-1/2 bg-border" />
               <div
@@ -198,22 +198,22 @@ const FeaturesBento = () => {
               icon={TrendingUp}
               title="Career Insights"
               description="What skills and roles are trending?"
-              iconClass="bg-gradient-to-br from-blue-400/20 to-blue-400/5 text-blue-400"
+              iconClass="bg-gradient-to-br from-blue-500/20 to-blue-500/5 text-blue-600"
               glowClass="bg-blue-400/30"
             />
-            <Badge className="bg-blue-400/10 text-blue-400">Live Data</Badge>
+            <Badge className="bg-blue-500/10 text-blue-600">Live Data</Badge>
           </div>
-          <div className="hairline flex min-h-[150px] flex-col justify-center rounded-xl bg-background/60 p-4">
+          <div className="hairline flex min-h-[120px] flex-col justify-center gap-2 rounded-xl bg-background/60 p-3 sm:min-h-[150px] sm:p-4">
             <div className="space-y-1.5">
               {trendingSkills.map((s) => (
                 <div key={s.name} className="flex items-center justify-between text-[11px]">
                   <span>{s.name}</span>
-                  <span className="text-blue-400">+{s.change}%</span>
+                  <span className="text-blue-600">+{s.change}%</span>
                 </div>
               ))}
             </div>
             <div className="mt-3 flex items-center gap-2">
-              <svg viewBox="0 0 60 20" className="h-5 w-14 text-blue-400">
+              <svg viewBox="0 0 60 20" className="h-5 w-14 text-blue-600">
                 <polyline
                   points="0,18 15,10 30,12 45,4 60,2"
                   fill="none"
@@ -240,7 +240,7 @@ const FeaturesBento = () => {
             />
             <Badge className="bg-teal-400/10 text-teal-400">Protected</Badge>
           </div>
-          <div className="hairline flex min-h-[150px] flex-col justify-center rounded-xl bg-background/60 p-4">
+          <div className="hairline flex min-h-[120px] flex-col justify-center gap-2 rounded-xl bg-background/60 p-3 sm:min-h-[150px] sm:p-4">
             <div className="flex flex-col gap-1.5">
               {authFlow.map((step, i) => (
                 <div key={step} className="flex items-center gap-2">

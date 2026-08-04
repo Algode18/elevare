@@ -5,6 +5,28 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>elevare</title>
+    <script>
+      // Runs before React mounts, so the correct theme class is on <html>
+      // for the very first paint — otherwise there's a flash of the wrong
+      // (light) theme while ThemeProvider's useEffect waits for React to
+      // commit. Keys/defaults must match src/components/theme-provider.jsx
+      // and the <ThemeProvider> usage in src/App.jsx.
+      (function () {
+        try {
+          var storageKey = "vite-ui-theme";
+          var defaultTheme = "system";
+          var theme = localStorage.getItem(storageKey) || defaultTheme;
+          if (theme === "system") {
+            theme = window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+          }
+          document.documentElement.classList.add(theme);
+        } catch (e) {
+          document.documentElement.classList.add("dark");
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

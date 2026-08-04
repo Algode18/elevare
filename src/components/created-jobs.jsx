@@ -24,7 +24,7 @@ const CreatedJobs = () => {
   }, []);
 
   if (loadingCreatedJobs) {
-    return <BarLoader className="mb-4" width={"100%"} color="#7c5cff" />;
+    return <BarLoader className="mb-4" width={"100%"} color="var(--primary)" />;
   }
 
   if (!createdJobs?.length) {
@@ -42,7 +42,7 @@ const CreatedJobs = () => {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {createdJobs.map((job) => (
         <JobCard key={job.id} job={job} onJobSaved={fnCreatedJobs} isMyJob />
       ))}

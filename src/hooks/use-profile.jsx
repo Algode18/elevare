@@ -3,10 +3,10 @@ import { useUser } from "@clerk/react";
 import useFetch from "@/hooks/use-fetch";
 import { getProfile } from "@/api/apiProfiles";
 
-// App-wide profile status hook. Used anywhere we need to know "does this
-// user have a complete profile yet?" — e.g. gating the Apply flow so it
-// behaves like Indeed's "complete your profile once" pattern instead of
-// asking for skills/education/resume on every single application.
+// App-wide profile status hook. "Complete" here means the hard minimum to
+// apply at all (name + skills) — the smaller extras like phone/portfolio/
+// LinkedIn are handled by the Quick Profile Check drawer during Apply, not
+// a redirect gate, per the new SaaS-style apply flow.
 const useProfile = () => {
   const { user, isSignedIn, isLoaded } = useUser();
   const { data: profile, loading, fn: fnProfile } = useFetch(getProfile, {
@@ -17,11 +17,13 @@ const useProfile = () => {
     if (isLoaded && isSignedIn && user?.id) fnProfile();
   }, [isLoaded, isSignedIn, user?.id]);
 
+  const isComplete = Boolean(profile?.full_name && profile?.skills?.length);
+
   return {
-    profile,                          // null until profile exists
+    profile,
     loading: isSignedIn ? loading : false,
-    isComplete: !!profile?.is_complete, // mirrors the DB-computed column
-    refetch: fnProfile,                // call after saving the profile form
+    isComplete,
+    refetch: fnProfile,
   };
 };
 

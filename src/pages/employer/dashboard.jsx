@@ -50,7 +50,7 @@ const EmployerDashboardPage = () => {
   }, [isLoaded]);
 
   if (!isLoaded || loading !== false) {
-    return <BarLoader className="mb-4" width={"100%"} color="#7c5cff" />;
+    return <BarLoader className="mb-4" width={"100%"} color="var(--primary)" />;
   }
 
   const data = getEmployerDashboardData({ user, jobs });
@@ -82,7 +82,7 @@ const EmployerDashboardPage = () => {
         </div>
         <Link
           to={data.cta.to}
-          className="flex w-fit shrink-0 items-center gap-2 rounded-md bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+          className="flex w-fit shrink-0 items-center gap-2 self-end rounded-md bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 sm:self-auto"
         >
           <PenBox className="h-3.5 w-3.5" /> {data.cta.label}
         </Link>
@@ -92,16 +92,16 @@ const EmployerDashboardPage = () => {
       {/* Hiring overview KPIs */}
       <section>
         <SectionHeader label="Hiring Overview" />
-        <div className="grid gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
           {data.kpis.map((k) => (
-            <Link key={k.label} to={k.to} className="hairline hover-lift group rounded-xl bg-surface p-4">
-              <div className="text-sm text-muted-foreground">{k.label}</div>
-              <div className="mt-1.5 font-mono text-3xl">{k.value}</div>
+            <Link key={k.label} to={k.to} className="hairline hover-lift group rounded-xl bg-surface p-3.5 sm:p-4">
+              <div className="text-xs text-muted-foreground sm:text-sm">{k.label}</div>
+              <div className="mt-1.5 font-mono text-2xl sm:text-3xl">{k.value}</div>
               <div className="relative mt-1.5 flex h-4 items-center text-xs">
-                <span className="text-muted-foreground transition-opacity group-hover:opacity-0">
+                <span className="truncate text-muted-foreground transition-opacity group-hover:opacity-0">
                   {k.sublabel}
                 </span>
-                <span className="absolute inset-y-0 left-0 flex items-center text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                <span className="absolute inset-y-0 left-0 hidden items-center text-primary opacity-0 transition-opacity group-hover:opacity-100 sm:flex">
                   {k.hint}
                 </span>
               </div>
@@ -142,15 +142,42 @@ const EmployerDashboardPage = () => {
       <section>
         <SectionHeader label="Hiring Pipeline" />
         <div className="hairline rounded-xl bg-surface p-5">
-          <div className="flex items-stretch gap-1 sm:gap-2">
+          {/* Mobile: stacked rows, one stage per line — the 5-column funnel is too cramped on narrow screens */}
+          <div className="flex flex-col gap-4 sm:hidden">
+            {data.pipeline.map((stage) => {
+              const max = data.pipeline[0].count || 1;
+              const widthPct = Math.max(8, Math.round((stage.count / max) * 100));
+              return (
+                <Link
+                  key={stage.stage}
+                  to={`/employer/applications?stage=${stage.status}`}
+                  className="group -m-1 rounded-md p-1 hover:bg-surface-2/60"
+                >
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground group-hover:text-foreground">{stage.stage}</span>
+                    <span className="font-mono text-lg">{stage.count}</span>
+                  </div>
+                  <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-surface-2">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-primary to-cyan"
+                      style={{ width: `${widthPct}%` }}
+                    />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* sm and up: original horizontal funnel with arrows between stages */}
+          <div className="hidden items-stretch gap-2 sm:flex">
             {data.pipeline.map((stage, i) => {
               const max = data.pipeline[0].count || 1;
               const widthPct = Math.max(8, Math.round((stage.count / max) * 100));
               return (
-                <div key={stage.stage} className="flex flex-1 items-center gap-1 sm:gap-2">
+                <div key={stage.stage} className="flex flex-1 items-center gap-2">
                   <Link
                     to={`/employer/applications?stage=${stage.status}`}
-                    className="group flex-1 rounded-md p-1 -m-1 hover:bg-surface-2/60"
+                    className="group -m-1 flex-1 rounded-md p-1 hover:bg-surface-2/60"
                   >
                     <div className="mb-2 text-xs text-muted-foreground group-hover:text-foreground">
                       {stage.stage}
@@ -164,7 +191,7 @@ const EmployerDashboardPage = () => {
                     <div className="mt-2 font-mono text-2xl">{stage.count}</div>
                   </Link>
                   {i < data.pipeline.length - 1 && (
-                    <ArrowRight className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" />
+                    <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                   )}
                 </div>
               );

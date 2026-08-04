@@ -36,7 +36,7 @@ const BackButton = ({ fallbackTo = "/employer/dashboard", label = "Back" }) => {
     <button
       type="button"
       onClick={handleClick}
-      className="mb-4 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+      className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground sm:mb-4"
     >
       <ArrowLeft className="h-3.5 w-3.5" /> {resolvedLabel}
     </button>

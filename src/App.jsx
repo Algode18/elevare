@@ -4,8 +4,12 @@ import { shadesOfPurple } from '@clerk/themes';
 import './App.css';
 import AppLayout from './layouts/app-layout';
 import MarketingLayout from './layouts/marketing-layout';
+import AdaptiveCompaniesLayout from './layouts/adaptive-companies-layout';
 import LandingPage from './pages/landing';
 import Onboarding from './pages/onboarding';
+import SignInPage from './pages/sign-in';
+import SignUpPage from './pages/sign-up';
+import NotFoundPage from './pages/not-found';
 
 // Public (guest-accessible)
 import JobsPage from './pages/jobs';
@@ -39,6 +43,23 @@ import { ThemeProvider } from './components/theme-provider';
 import ProtectedRoute from './components/protected-route';
 
 const router = createBrowserRouter([
+  // Auth — full-page immersive experience, no marketing nav/footer wrapper.
+  { path: "/sign-in/*", element: <SignInPage /> },
+  { path: "/sign-up/*", element: <SignUpPage /> },
+
+  // Companies / Company Details — reachable by guests AND signed-in
+  // candidates. Chrome adapts (marketing header+footer vs. workspace
+  // sidebar) based on auth state; the page components themselves are
+  // identical either way. Kept OUT of both MarketingLayout and AppLayout
+  // below to avoid two route entries matching the same path.
+  {
+    element: <AdaptiveCompaniesLayout />,
+    children: [
+      { path: "/companies", element: <CompaniesPage /> },
+      { path: "/companies/:id", element: <CompanyDetailsPage /> },
+    ],
+  },
+
   {
     // Public / guest-accessible — full-bleed marketing shell (header+footer)
     element: <MarketingLayout />,
@@ -46,8 +67,6 @@ const router = createBrowserRouter([
       { path: "/", element: <LandingPage /> },
       { path: "/jobs", element: <JobsPage /> },
       { path: "/jobs/:id", element: <JobDetailsPage /> },
-      { path: "/companies", element: <CompaniesPage /> },
-      { path: "/companies/:id", element: <CompanyDetailsPage /> },
       { path: "/about", element: <AboutPage /> },
       { path: "/contact", element: <ContactPage /> },
       { path: "/privacy", element: <PrivacyPage /> },
@@ -60,6 +79,11 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
+      // Catch-all — must stay last. Matches any URL nothing else did, so
+      // guests and signed-in users alike get a real 404 page (with the
+      // marketing header/footer) instead of React Router's default,
+      // unstyled error screen.
+      { path: "*", element: <NotFoundPage /> },
     ],
   },
   {
@@ -195,7 +219,7 @@ if (!PUBLISHABLE_KEY) {
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       {/*
         routerPush / routerReplace hand Clerk's internal navigation (UserButton.Link
         items, afterSignOutUrl, sign-in/up redirects, etc.) off to the SPA router
@@ -204,7 +228,7 @@ function App() {
         candidate menu — hard-reloads the page instead of routing client-side.
       */}
       <ClerkProvider
-        appearance={{ baseTheme: shadesOfPurple }}
+        appearance={{ baseTheme: shadesOfPurple, cssLayerName: "clerk" }}
         publishableKey={PUBLISHABLE_KEY}
         afterSignOutUrl="/"
         routerPush={(to) => router.navigate(to)}

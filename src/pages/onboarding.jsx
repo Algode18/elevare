@@ -45,7 +45,7 @@ const Onboarding = () => {
   }, [user]);
 
   if (!isLoaded) {
-    return <BarLoader className="mb-4" width={"100%"} color="#7c5cff" />;
+    return <BarLoader className="mb-4" width={"100%"} color="var(--primary)" />;
   }
 
   return (
@@ -84,7 +84,7 @@ const Onboarding = () => {
         })}
       </div>
 
-      {saving && <BarLoader className="mt-8" width={"100%"} color="#7c5cff" />}
+      {saving && <BarLoader className="mt-8" width={"100%"} color="var(--primary)" />}
     </div>
   );
 };

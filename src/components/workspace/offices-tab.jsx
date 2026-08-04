@@ -5,6 +5,8 @@ import { z } from "zod";
 import { BarLoader } from "react-spinners";
 import { MapPin, Plus, Pencil, Trash2, Building2, Star } from "lucide-react";
 
+import { State, City } from "country-state-city";
+
 import {
   Drawer,
   DrawerTrigger,
@@ -18,6 +20,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import CitySelect from "@/components/city-select";
 import { cn } from "@/lib/utils";
 import useFetch from "@/hooks/use-fetch";
 import {
@@ -26,6 +37,17 @@ import {
   updateCompanyOffice,
   deleteCompanyOffice,
 } from "@/api/apiCompanies";
+
+const INDIAN_STATES = State.getStatesOfCountry("IN").map((s) => s.name);
+
+// Same city list CitySelect uses — lets us look up which state a picked
+// city belongs to, so State can auto-fill instead of being typed by hand
+// (and drift out of sync with the city, e.g. "Bengaluru" + "Odisha").
+const stateForCity = (cityName) => {
+  const match = City.getCitiesOfCountry("IN")?.find((c) => c.name === cityName);
+  if (!match) return "";
+  return State.getStateByCodeAndCountry(match.stateCode, "IN")?.name || "";
+};
 
 const schema = z.object({
   city: z.string().min(1, { message: "City is required" }),
@@ -71,13 +93,14 @@ const OfficeDrawer = ({ companyId, office, onSaved, trigger }) => {
     handleSubmit,
     control,
     reset,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
       city: office?.city || "",
       state: office?.state || "",
-      country: office?.country || "",
+      country: office?.country || (isEdit ? "" : "India"),
       address: office?.address || "",
       timezone: office?.timezone || "",
       employees: office?.employees ?? "",
@@ -119,12 +142,47 @@ const OfficeDrawer = ({ companyId, office, onSaved, trigger }) => {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Label>City</Label>
-              <Input className="mt-1.5" placeholder="e.g. Bhubaneswar" {...register("city")} />
+              <Controller
+                name="city"
+                control={control}
+                render={({ field }) => (
+                  <CitySelect
+                    value={field.value}
+                    onChange={(cityName) => {
+                      field.onChange(cityName);
+                      const guessedState = stateForCity(cityName);
+                      if (guessedState) setValue("state", guessedState, { shouldDirty: true });
+                    }}
+                    placeholder="e.g. Bhubaneswar"
+                    allowClear={false}
+                    className="mt-1.5"
+                  />
+                )}
+              />
               {errors.city && <p className="mt-1 text-xs text-destructive">{errors.city.message}</p>}
             </div>
             <div>
               <Label>State</Label>
-              <Input className="mt-1.5" placeholder="e.g. Odisha" {...register("state")} />
+              <Controller
+                name="state"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className="mt-1.5 w-full">
+                      <SelectValue placeholder="Select state" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {INDIAN_STATES.map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {s}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
             <div>
               <Label>Country</Label>
@@ -163,7 +221,7 @@ const OfficeDrawer = ({ companyId, office, onSaved, trigger }) => {
             />
           </div>
 
-          {loading && <BarLoader width={"100%"} color="#7c5cff" />}
+          {loading && <BarLoader width={"100%"} color="var(--primary)" />}
         </form>
 
         <DrawerFooter>
@@ -200,7 +258,7 @@ const OfficesTab = ({ company }) => {
 
   return (
     <div>
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-sm font-semibold">Offices</h2>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -211,14 +269,14 @@ const OfficesTab = ({ company }) => {
           companyId={company?.id}
           onSaved={fnOffices}
           trigger={
-            <Button type="button" size="sm" className="gap-1.5">
+            <Button type="button" size="sm" className="w-full gap-1.5 sm:w-auto">
               <Plus className="h-3.5 w-3.5" /> Add office
             </Button>
           }
         />
       </div>
 
-      {loading !== false && <BarLoader width={"100%"} color="#7c5cff" />}
+      {loading !== false && <BarLoader width={"100%"} color="var(--primary)" />}
 
       {loading === false && (
         <div className="space-y-2.5">

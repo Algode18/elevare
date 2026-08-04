@@ -336,7 +336,7 @@ const EmployerApplicationsPage = () => {
   };
 
   if (!isLoaded || loading !== false) {
-    return <BarLoader className="mb-4" width={"100%"} color="#7c5cff" />;
+    return <BarLoader className="mb-4" width={"100%"} color="var(--primary)" />;
   }
 
   const noJobsAtAll = !jobs?.length;
@@ -386,10 +386,13 @@ const EmployerApplicationsPage = () => {
               {recentActivity.length === 0 ? (
                 <div className="py-2 text-sm text-muted-foreground">Nothing yet.</div>
               ) : (
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-2.5 sm:gap-1.5">
                   {recentActivity.map((a) => (
-                    <div key={a.id} className="flex items-center justify-between gap-3 text-sm">
-                      <span className="truncate">
+                    <div
+                      key={a.id}
+                      className="flex flex-col gap-0.5 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+                    >
+                      <span className="sm:truncate">
                         <span className="font-medium">{a.name}</span> applied to{" "}
                         <span className="text-muted-foreground">{a.job?.title}</span>
                       </span>
@@ -399,25 +402,32 @@ const EmployerApplicationsPage = () => {
                 </div>
               )}
             </div>
-            <div className="hairline flex flex-col justify-center gap-2 rounded-xl bg-surface p-4 text-sm">
-              {overview.mostApplied && (
-                <div>
-                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Most Applied</div>
+
+            {/* Two separate cards side-by-side on mobile; stacked in the
+                remaining column on large screens. */}
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+              <div className="hairline flex flex-col justify-center gap-1 rounded-xl bg-surface p-3.5 text-sm">
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Most Applied</div>
+                {overview.mostApplied ? (
                   <div className="font-medium">
-                    {overview.mostApplied.title}{" "}
+                    <span className="line-clamp-2">{overview.mostApplied.title}</span>{" "}
                     <span className="text-muted-foreground">({overview.mostApplied.count})</span>
                   </div>
-                </div>
-              )}
-              {overview.leastApplied && (
-                <div>
-                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Least Applied</div>
+                ) : (
+                  <div className="text-muted-foreground">—</div>
+                )}
+              </div>
+              <div className="hairline flex flex-col justify-center gap-1 rounded-xl bg-surface p-3.5 text-sm">
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Least Applied</div>
+                {overview.leastApplied ? (
                   <div className="font-medium">
-                    {overview.leastApplied.title}{" "}
+                    <span className="line-clamp-2">{overview.leastApplied.title}</span>{" "}
                     <span className="text-muted-foreground">({overview.leastApplied.count})</span>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="text-muted-foreground">—</div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -438,8 +448,8 @@ const EmployerApplicationsPage = () => {
                   </button>
                 </div>
               )}
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="relative min-w-[220px] flex-1">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <div className="relative w-full sm:min-w-[220px] sm:flex-1">
                   <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     className="pl-8"
@@ -449,124 +459,137 @@ const EmployerApplicationsPage = () => {
                   />
                 </div>
 
-                <Select value={jobFilter} onValueChange={setJobFilter}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="All jobs" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="all">All jobs</SelectItem>
-                      {jobs?.map((j) => (
-                        <SelectItem key={j.id} value={String(j.id)}>
-                          {j.title}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-2 gap-2 sm:contents">
+                  <Select value={jobFilter} onValueChange={setJobFilter}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectValue placeholder="All jobs" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="all">All jobs</SelectItem>
+                        {jobs?.map((j) => (
+                          <SelectItem key={j.id} value={String(j.id)}>
+                            {j.title}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
 
-                <Select value={stageFilter ? "all" : statusFilter} onValueChange={handleStatusFilterChange}>
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="Hiring Stage" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="all">All stages</SelectItem>
-                      <SelectItem value="applied">Applied</SelectItem>
-                      <SelectItem value="reviewed">Reviewed</SelectItem>
-                      <SelectItem value="interviewing">Interviewing</SelectItem>
-                      <SelectItem value="offer">Offer</SelectItem>
-                      <SelectItem value="hired">Hired</SelectItem>
-                      <SelectItem value="rejected">Rejected</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                  <Select value={stageFilter ? "all" : statusFilter} onValueChange={handleStatusFilterChange}>
+                    <SelectTrigger className="w-full sm:w-[150px]">
+                      <SelectValue placeholder="Hiring Stage" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="all">All stages</SelectItem>
+                        <SelectItem value="applied">Applied</SelectItem>
+                        <SelectItem value="reviewed">Reviewed</SelectItem>
+                        <SelectItem value="interviewing">Interviewing</SelectItem>
+                        <SelectItem value="offer">Offer</SelectItem>
+                        <SelectItem value="hired">Hired</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
 
-                <Select value={experienceFilter} onValueChange={setExperienceFilter}>
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="Experience" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="all">Any experience</SelectItem>
-                      {EXPERIENCE_RANGES.map((r) => (
-                        <SelectItem key={r.value} value={r.value}>
-                          {r.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                  <Select value={experienceFilter} onValueChange={setExperienceFilter}>
+                    <SelectTrigger className="w-full sm:w-[150px]">
+                      <SelectValue placeholder="Experience" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="all">Any experience</SelectItem>
+                        {EXPERIENCE_RANGES.map((r) => (
+                          <SelectItem key={r.value} value={r.value}>
+                            {r.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
 
-                <Select value={sort} onValueChange={setSort}>
-                  <SelectTrigger className="w-[170px]">
-                    <SelectValue placeholder="Sort" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="newest">Newest</SelectItem>
-                      <SelectItem value="oldest">Oldest</SelectItem>
-                      <SelectItem value="experience">Highest Experience</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                  <Select value={sort} onValueChange={setSort}>
+                    <SelectTrigger className="w-full sm:w-[170px]">
+                      <SelectValue placeholder="Sort" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="newest">Newest</SelectItem>
+                        <SelectItem value="oldest">Oldest</SelectItem>
+                        <SelectItem value="experience">Highest Experience</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              {/* Bulk action bar lives inside the sticky block so it's never lost while scrolling */}
+              {/* Bulk action bar lives inside the sticky block so it's never lost while scrolling.
+                  Mobile: two equal-width grid rows (3 primary actions, then 2 secondary actions) instead
+                  of an uneven wrap. Desktop: each wrapper collapses via `sm:contents` so the buttons fall
+                  back into a single flex-wrap row, unchanged from before. */}
               {selectedIds.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
-                  <span className="text-sm font-medium">{selectedIds.length} selected</span>
-                  <button
-                    type="button"
-                    disabled={bulkRunning}
-                    onClick={() => runBulkStatus("interviewing")}
-                    className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
-                  >
-                    Move to Interview
-                  </button>
-                  <button
-                    type="button"
-                    disabled={bulkRunning}
-                    onClick={() => runBulkStatus("hired")}
-                    className="flex items-center gap-1.5 rounded-md bg-lime/15 px-3 py-1.5 text-xs font-medium text-lime hover:bg-lime/25 disabled:opacity-50"
-                  >
-                    <Check className="h-3.5 w-3.5" /> Hire
-                  </button>
-                  <button
-                    type="button"
-                    disabled={bulkRunning}
-                    onClick={() => runBulkStatus("rejected")}
-                    className="flex items-center gap-1.5 rounded-md bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/20 disabled:opacity-50"
-                  >
-                    <X className="h-3.5 w-3.5" /> Reject
-                  </button>
-                  <button
-                    type="button"
-                    onClick={runBulkDownload}
-                    className="hairline flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-2"
-                  >
-                    <Download className="h-3.5 w-3.5" /> Download Resumes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => exportApplicationsCsv(selectedApplications)}
-                    className="hairline flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-2"
-                  >
-                    <FileText className="h-3.5 w-3.5" /> Export CSV
-                  </button>
-                  <button
-                    type="button"
-                    onClick={clearSelection}
-                    className="ml-auto text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    Clear selection
-                  </button>
+                <div className="flex flex-col gap-2 border-t border-border/60 pt-3 sm:flex-row sm:flex-wrap sm:items-center">
+                  <div className="flex items-center justify-between sm:contents">
+                    <span className="text-sm font-medium">{selectedIds.length} selected</span>
+                    <button
+                      type="button"
+                      onClick={clearSelection}
+                      className="text-xs text-muted-foreground hover:text-foreground sm:order-last sm:ml-auto"
+                    >
+                      Clear selection
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 sm:contents">
+                    <button
+                      type="button"
+                      disabled={bulkRunning}
+                      onClick={() => runBulkStatus("interviewing")}
+                      className="flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 sm:w-auto sm:justify-start"
+                    >
+                      Move to Interview
+                    </button>
+                    <button
+                      type="button"
+                      disabled={bulkRunning}
+                      onClick={() => runBulkStatus("hired")}
+                      className="flex items-center justify-center gap-1.5 rounded-md bg-lime/15 px-3 py-1.5 text-xs font-medium text-lime hover:bg-lime/25 disabled:opacity-50 sm:w-auto sm:justify-start"
+                    >
+                      <Check className="h-3.5 w-3.5" /> Hire
+                    </button>
+                    <button
+                      type="button"
+                      disabled={bulkRunning}
+                      onClick={() => runBulkStatus("rejected")}
+                      className="flex items-center justify-center gap-1.5 rounded-md bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/20 disabled:opacity-50 sm:w-auto sm:justify-start"
+                    >
+                      <X className="h-3.5 w-3.5" /> Reject
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 sm:contents">
+                    <button
+                      type="button"
+                      onClick={runBulkDownload}
+                      className="hairline flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-2 sm:w-auto sm:justify-start"
+                    >
+                      <Download className="h-3.5 w-3.5" /> Download Resumes
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => exportApplicationsCsv(selectedApplications)}
+                      className="hairline flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-2 sm:w-auto sm:justify-start"
+                    >
+                      <FileText className="h-3.5 w-3.5" /> Export CSV
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
           </div>
 
-          {bulkRunning && <BarLoader className="mb-4" width={"100%"} color="#7c5cff" />}
+          {bulkRunning && <BarLoader className="mb-4" width={"100%"} color="var(--primary)" />}
 
           {/* Applicant list, grouped by job */}
           {groups.length === 0 ? (
@@ -613,6 +636,13 @@ const Overview = ({ label, value }) => (
   </div>
 );
 
+const MiniStat = ({ label, value }) => (
+  <div className="flex flex-col items-center justify-center">
+    <div className="text-sm font-semibold leading-none">{value}</div>
+    <div className="mt-1 text-[9px] uppercase tracking-wide text-muted-foreground">{label}</div>
+  </div>
+);
+
 const BADGE_ICON = { trending: Flame, top: Sparkles };
 
 const JobBadge = ({ badge }) => {
@@ -653,7 +683,59 @@ const JobGroup = ({
 
   return (
     <div className="hairline rounded-xl bg-surface">
-      <div className="flex flex-wrap items-start justify-between gap-3 p-3.5">
+      {/* Mobile: clean stacked header — title row, status/badges, a 4-up
+          stats grid (same shape as the compact cards on Manage Jobs), and a
+          full-width action button. Kept separate from the desktop row below
+          instead of trying to force one layout to reflow at every width. */}
+      <div className="flex flex-col gap-2.5 p-3.5 sm:hidden">
+        <button type="button" onClick={onToggleCollapsed} className="flex items-center gap-2 text-left">
+          {collapsed ? (
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+          )}
+          {logo}
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-semibold">{job.title}</div>
+            <div className="truncate text-xs text-muted-foreground">
+              {job.company?.name} {posted && `• ${posted}`}
+            </div>
+          </div>
+        </button>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span
+            className={cn(
+              "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-medium",
+              job.isOpen
+                ? "border-lime/30 bg-lime/10 text-lime"
+                : "border-destructive/30 bg-destructive/10 text-destructive"
+            )}
+          >
+            {job.isOpen ? "Open" : "Paused"}
+          </span>
+          {badges.map((b) => (
+            <JobBadge key={b.key} badge={b} />
+          ))}
+        </div>
+
+        <div className="grid grid-cols-4 gap-1 rounded-lg bg-surface-2/40 p-2">
+          <MiniStat label="Applied" value={totalCount} />
+          <MiniStat label="Interview" value={interviewCount} />
+          <MiniStat label="Offer" value={offerCount} />
+          <MiniStat label="Hired" value={hiredCount} />
+        </div>
+
+        <Link
+          to={`/employer/jobs/${job.id}/applicants`}
+          className="hairline flex items-center justify-center gap-1.5 rounded-md px-2.5 py-2 text-xs font-medium text-foreground hover:bg-surface-2"
+        >
+          <Users className="h-3.5 w-3.5" /> Manage Applicants
+        </Link>
+      </div>
+
+      {/* Desktop: single row, button on the right */}
+      <div className="hidden flex-wrap items-start justify-between gap-3 p-3.5 sm:flex">
         <button
           type="button"
           onClick={onToggleCollapsed}
@@ -802,17 +884,32 @@ const ApplicantRow = ({
             <span className="flex items-center gap-1">
               <School className="h-3 w-3" /> {application.education || "—"}
             </span>
-            <span className="flex items-center gap-1 truncate">
-              <Boxes className="h-3 w-3" /> {application.skills || "—"}
-            </span>
           </div>
+
+          {application.skills && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <Boxes className="h-3 w-3 shrink-0 text-muted-foreground" />
+              {application.skills
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean)
+                .map((skill) => (
+                  <span
+                    key={skill}
+                    className="hairline rounded-full bg-background/60 px-2 py-0.5 text-[10px] text-muted-foreground"
+                  >
+                    {skill}
+                  </span>
+                ))}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Quick triage actions only — status bump, resume peek/download.
           Full hiring actions (notes, hire, reject, timeline) live in one
           place: the job's Applicants workspace, linked via the name above. */}
-      <div className="flex shrink-0 items-center gap-1.5 self-end sm:self-auto">
+      <div className="flex w-full items-center justify-between gap-1.5 sm:w-auto sm:shrink-0 sm:justify-start">
         <Select value={application.status} onValueChange={onStatusChange}>
           <SelectTrigger className="h-7 w-32 text-xs">
             <SelectValue />
@@ -828,31 +925,34 @@ const ApplicantRow = ({
             </SelectGroup>
           </SelectContent>
         </Select>
-        <button
-          type="button"
-          onClick={onPreview}
-          disabled={!application.resume}
-          title="Preview resume"
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-surface-2 hover:text-foreground disabled:opacity-40"
-        >
-          <Eye className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={onDownload}
-          disabled={!application.resume}
-          title="Download resume"
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-surface-2 hover:text-foreground disabled:opacity-40"
-        >
-          <Download className="h-3.5 w-3.5" />
-        </button>
-        <Link
-          to={`/employer/jobs/${application.job_id}/applicants?applicant=${application.id}`}
-          title="View profile"
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-surface-2 hover:text-foreground"
-        >
-          <ChevronRight className="h-3.5 w-3.5" />
-        </Link>
+
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={onPreview}
+            disabled={!application.resume}
+            title="Preview resume"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-surface-2 hover:text-foreground disabled:opacity-40"
+          >
+            <Eye className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onDownload}
+            disabled={!application.resume}
+            title="Download resume"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-surface-2 hover:text-foreground disabled:opacity-40"
+          >
+            <Download className="h-3.5 w-3.5" />
+          </button>
+          <Link
+            to={`/employer/jobs/${application.job_id}/applicants?applicant=${application.id}`}
+            title="View profile"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
       </div>
     </div>
   );

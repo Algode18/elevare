@@ -41,7 +41,7 @@ const principles = [
 
 const roadmap = [
   { status: "Live now", label: "Core hiring workflow", text: "Search, apply, track, review, and hire — the full loop works end to end today." },
-  { status: "Building next", label: "AI-assisted matching", text: "Smarter job recommendations and resume feedback, in active development." },
+  { status: "Building next", label: "Employer analytics", text: "Deeper hiring-funnel insights and reporting for employer teams, in active development." },
   { status: "Exploring", label: "Interview & analytics tools", text: "Ideas we're evaluating for later — nothing committed yet." },
 ];
 

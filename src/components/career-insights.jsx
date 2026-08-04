@@ -158,7 +158,7 @@ const CareerInsights = ({ jobs, loading }) => {
   ];
 
   return (
-    <section className="mx-auto max-w-7xl px-6 py-24">
+    <section className="mx-auto max-w-7xl px-6 py-16">
       <div className="mb-8 max-w-2xl">
         <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-primary">
           <span className="relative flex h-1.5 w-1.5">
@@ -167,7 +167,7 @@ const CareerInsights = ({ jobs, loading }) => {
           </span>
           Career Insights — Live
         </div>
-        <h2 className="mt-3 font-display text-5xl">More than a job board.</h2>
+        <h2 className="mt-3 font-display text-5xl">Career Insights.</h2>
         <p className="mt-3 text-xs text-muted-foreground">
           Computed live from open roles on Elevare right now.
         </p>

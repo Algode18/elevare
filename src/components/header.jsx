@@ -68,16 +68,17 @@ const Header = () => {
               }}
             >
               <UserButton.MenuItems>
-                {isRecruiter ? (
-                  <>
-                    <UserButton.Link label="My Jobs" labelIcon={<BriefcaseBusiness size={15} />} href="/employer/jobs" />
-                    <UserButton.Link label="Company" labelIcon={<BriefcaseBusiness size={15} />} href="/employer/company" />
-                  </>
-                ) : (
-                  <>
-                    <UserButton.Link label="My Applications" labelIcon={<BriefcaseBusiness size={15} />} href="/applications" />
-                    <UserButton.Link label="Saved Jobs" labelIcon={<Heart size={15} />} href="/saved" />
-                  </>
+                {isRecruiter && (
+                  <UserButton.Link label="My Jobs" labelIcon={<BriefcaseBusiness size={15} />} href="/employer/jobs" />
+                )}
+                {isRecruiter && (
+                  <UserButton.Link label="Company" labelIcon={<BriefcaseBusiness size={15} />} href="/employer/company" />
+                )}
+                {!isRecruiter && (
+                  <UserButton.Link label="My Applications" labelIcon={<BriefcaseBusiness size={15} />} href="/applications" />
+                )}
+                {!isRecruiter && (
+                  <UserButton.Link label="Saved Jobs" labelIcon={<Heart size={15} />} href="/saved" />
                 )}
               </UserButton.MenuItems>
             </UserButton>

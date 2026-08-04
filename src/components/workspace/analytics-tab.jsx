@@ -15,13 +15,13 @@ import useFetch from "@/hooks/use-fetch";
 import { getCompanyAnalytics, getCompanyFollowers } from "@/api/apiCompanies";
 
 const StatCard = ({ icon: Icon, label, value, hint }) => (
-  <div className="hairline rounded-lg bg-surface-2/40 p-4">
-    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-      <Icon className="h-3.5 w-3.5" />
-      {label}
+  <div className="hairline rounded-lg bg-surface-2/40 p-3 sm:p-4">
+    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground sm:gap-2 sm:text-xs">
+      <Icon className="h-3.5 w-3.5 shrink-0" />
+      <span className="truncate">{label}</span>
     </div>
-    <div className="mt-2 font-display text-2xl">{value}</div>
-    {hint && <div className="mt-0.5 text-xs text-muted-foreground">{hint}</div>}
+    <div className="mt-2 truncate font-display text-xl sm:text-2xl">{value}</div>
+    {hint && <div className="mt-0.5 truncate text-[11px] text-muted-foreground sm:text-xs">{hint}</div>}
   </div>
 );
 
@@ -60,11 +60,11 @@ const AnalyticsTab = ({ company }) => {
         </p>
       </div>
 
-      {loading !== false && <BarLoader width={"100%"} color="#7c5cff" />}
+      {loading !== false && <BarLoader width={"100%"} color="var(--primary)" />}
 
       {loading === false && stats && (
         <div className="space-y-6">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
             <StatCard icon={Eye} label="Profile Views" value={stats.profile_views} />
             <StatCard icon={Users} label="Followers" value={stats.followers_count} />
             <StatCard
@@ -76,7 +76,7 @@ const AnalyticsTab = ({ company }) => {
             <StatCard icon={FileText} label="Applications" value={stats.total_applications} />
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-3">
             <StatCard icon={TrendingUp} label="Hiring Rate" value={`${stats.hiring_rate}%`} hint="Applications → hired" />
             <StatCard icon={CheckCircle2} label="Offer Rate" value={`${stats.offer_rate}%`} hint="Applications → decided" />
             <StatCard icon={Flame} label="Acceptance Rate" value={`${stats.acceptance_rate}%`} hint="Offers → accepted" />
@@ -108,7 +108,7 @@ const AnalyticsTab = ({ company }) => {
           Candidates who follow {company?.name || "your company"} and get notified about new roles.
         </p>
 
-        {loadingFollowers !== false && <BarLoader width={"100%"} color="#7c5cff" />}
+        {loadingFollowers !== false && <BarLoader width={"100%"} color="var(--primary)" />}
 
         {loadingFollowers === false && (
           <div className="hairline divide-y divide-border/60 rounded-lg bg-surface-2/40">

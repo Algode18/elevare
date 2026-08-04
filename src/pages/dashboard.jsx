@@ -2,10 +2,12 @@ import { getApplications } from "@/api/apiApplications";
 import { getJobs, getSavedJobs } from "@/api/apiJobs";
 import useFetch from "@/hooks/use-fetch";
 import useProfile from "@/hooks/use-profile";
+import useResumes from "@/hooks/use-resumes";
+import { getProfileCompletion } from "@/lib/profile-completion";
 import { formatRelativeTime } from "@/lib/dashboard-messages";
 import { useUser } from "@clerk/react";
 import { useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { BarLoader } from "react-spinners";
 import { motion } from "framer-motion";
 import {
@@ -26,19 +28,19 @@ import {
   GraduationCap,
   TrendingUp,
 } from "lucide-react";
-import JobCard from "@/components/job-card";
+import JobMatchTile from "@/components/discover/job-match-tile";
 
 // ---------------------------------------------------------------------------
 // Status system — every status gets a consistent color meaning across the
 // whole dashboard (pipeline dots, badges, funnel, cards).
 // ---------------------------------------------------------------------------
 const STATUS = {
-  applied: { label: "Applied", color: "#7c5cff", soft: "bg-primary/10 text-primary border-primary/25" },
-  reviewed: { label: "In Review", color: "#facc15", soft: "bg-amber-400/10 text-amber-300 border-amber-400/25" },
-  interviewing: { label: "Interview", color: "#22d3ee", soft: "bg-cyan/10 text-cyan border-cyan/25" },
-  offer: { label: "Offer", color: "#4ade80", soft: "bg-emerald-400/10 text-emerald-300 border-emerald-400/25" },
-  hired: { label: "Hired", color: "#4ade80", soft: "bg-emerald-400/10 text-emerald-300 border-emerald-400/25" },
-  rejected: { label: "Rejected", color: "#fb7185", soft: "bg-rose-400/10 text-rose-300 border-rose-400/25" },
+  applied: { label: "Applied", color: "#6F56F8", soft: "bg-primary/10 text-primary border-primary/25" },
+  reviewed: { label: "In Review", color: "#F59E0B", soft: "bg-amber-500/10 text-amber-600 border-amber-500/25" },
+  interviewing: { label: "Interview", color: "#4F8EF7", soft: "bg-cyan/10 text-cyan border-cyan/25" },
+  offer: { label: "Offer", color: "#10B981", soft: "bg-emerald-500/10 text-emerald-600 border-emerald-500/25" },
+  hired: { label: "Hired", color: "#10B981", soft: "bg-emerald-500/10 text-emerald-600 border-emerald-500/25" },
+  rejected: { label: "Rejected", color: "#EF4444", soft: "bg-rose-500/10 text-rose-600 border-rose-500/25" },
 };
 const PIPELINE_STAGES = ["applied", "reviewed", "interviewing", "offer"];
 
@@ -47,24 +49,6 @@ const timeOfDayGreeting = () => {
   if (h < 12) return "Good Morning";
   if (h < 18) return "Good Afternoon";
   return "Good Evening";
-};
-
-// Real profile fields only — no fabricated "AI score". Just how many of
-// the fields the profile form actually asks for are filled in.
-const profileCompletion = (profile) => {
-  if (!profile) return 0;
-  const fields = [
-    profile.full_name,
-    profile.headline,
-    profile.location,
-    profile.phone,
-    profile.experience_years !== null && profile.experience_years !== undefined,
-    profile.education,
-    profile.skills?.length > 0,
-    profile.resume_url,
-  ];
-  const filled = fields.filter(Boolean).length;
-  return Math.round((filled / fields.length) * 100);
 };
 
 // Animation choreography — sections fade + rise in on load, staggered.
@@ -80,6 +64,13 @@ const item = {
 const DashboardPage = () => {
   const { user, isLoaded } = useUser();
   const { profile, loading: loadingProfile } = useProfile();
+  const { resumes } = useResumes();
+  const navigate = useNavigate();
+
+  const mySkills = useMemo(
+    () => (Array.isArray(profile?.skills) ? profile.skills.map((s) => String(s).toLowerCase()) : []),
+    [profile]
+  );
 
   const { data: applications, loading: loadingApps, fn: fnApps } = useFetch(getApplications, {
     user_id: user?.id,
@@ -105,7 +96,7 @@ const DashboardPage = () => {
     [applications]
   );
 
-  const completion = profileCompletion(profile);
+  const completion = getProfileCompletion(profile, resumes.length);
   const firstName = user?.firstName || user?.fullName || "there";
 
   // Only the single most time-sensitive application — an active
@@ -140,7 +131,7 @@ const DashboardPage = () => {
       id: "apply",
       label: (applications?.length ?? 0) > 0 ? "Keep applying to new roles" : "Apply to your first job",
       done: (applications?.length ?? 0) > 0,
-      to: "/jobs",
+      to: "/dashboard/jobs",
     });
     if ((savedJobs?.length ?? 0) > 0) {
       items.push({
@@ -197,7 +188,7 @@ const DashboardPage = () => {
         at: s.created_at,
         label: `Saved ${s.job?.title || "a job"} at ${s.job?.company?.name || "a company"}`,
         icon: Bookmark,
-        color: "#22d3ee",
+        color: "#4F8EF7",
       });
     });
     if (profile?.updated_at) {
@@ -206,7 +197,7 @@ const DashboardPage = () => {
         at: profile.updated_at,
         label: profile.resume_url ? "Updated resume / profile" : "Updated profile",
         icon: User,
-        color: "#88e619",
+        color: "#10B981",
       });
     }
     return events
@@ -215,7 +206,7 @@ const DashboardPage = () => {
       .slice(0, 5);
   }, [applications, savedJobs, profile]);
 
-  if (!isLoaded || loadingProfile) return <BarLoader className="mb-4" width={"100%"} color="#7c5cff" />;
+  if (!isLoaded || loadingProfile) return <BarLoader className="mb-4" width={"100%"} color="var(--primary)" />;
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="flex flex-col gap-6">
@@ -224,7 +215,7 @@ const DashboardPage = () => {
       {/* ---------------------------------------------------------------- */}
       <motion.div
         variants={item}
-        className="relative overflow-hidden rounded-3xl border border-border bg-surface/60 p-8 sm:p-10"
+        className="relative overflow-hidden rounded-[var(--radius-card)] border border-border card-surface p-8 sm:p-10"
       >
         <div className="mesh-bg pointer-events-none absolute inset-0 opacity-70" />
         <motion.div
@@ -272,7 +263,7 @@ const DashboardPage = () => {
             )}
           </div>
           <Link
-            to="/jobs"
+            to="/dashboard/jobs"
             className="group flex w-fit shrink-0 items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground shadow-[0_0_0_0_rgba(124,92,255,0.5)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-4px_rgba(124,92,255,0.55)]"
           >
             Browse Jobs
@@ -282,15 +273,15 @@ const DashboardPage = () => {
 
         {/* Quick stat strip inside hero — compact, not four competing cards */}
         <div className="relative mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <MiniStat icon={Send} label="Applications" value={applications?.length ?? "–"} to="/applications" accent="#7c5cff" />
-          <MiniStat icon={Bookmark} label="Saved" value={savedJobs?.length ?? "–"} to="/saved" accent="#22d3ee" />
-          <MiniStat icon={CalendarCheck} label="Interviews" value={interviewCount} to="/applications" accent="#facc15" />
+          <MiniStat icon={Send} label="Applications" value={applications?.length ?? "–"} to="/applications" accent="#6F56F8" />
+          <MiniStat icon={Bookmark} label="Saved" value={savedJobs?.length ?? "–"} to="/saved" accent="#4F8EF7" />
+          <MiniStat icon={CalendarCheck} label="Interviews" value={interviewCount} to="/applications" accent="#F59E0B" />
           <MiniStat
             icon={FileText}
             label="Resume"
             value={profile?.resume_url ? "Ready" : "Missing"}
             to="/resume"
-            accent={profile?.resume_url ? "#4ade80" : "#fb7185"}
+            accent={profile?.resume_url ? "#10B981" : "#EF4444"}
           />
         </div>
       </motion.div>
@@ -312,27 +303,25 @@ const DashboardPage = () => {
       {/* ---------------------------------------------------------------- */}
       {/* RECOMMENDED JOBS                                                 */}
       {/* ---------------------------------------------------------------- */}
-      <motion.section variants={item}>
+     <motion.section variants={item}>
         <SectionHeader
           eyebrow="Curated"
           title="Recommended for you"
-          to={jobs?.length ? "/jobs" : null}
+          to={jobs?.length ? "/dashboard/jobs" : null}
         />
         {loadingJobs !== false ? (
-          <BarLoader width={"100%"} color="#7c5cff" />
+          <BarLoader width={"100%"} color="var(--primary)" />
         ) : jobs?.length ? (
           <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {jobs.slice(0, 3).map((j, i) => (
-              <motion.div
+              <JobMatchTile
                 key={j.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 * i, duration: 0.4 }}
-                whileHover={{ y: -4 }}
-                className="h-full"
-              >
-                <JobCard job={j} savedInit={savedJobIds.has(j.id)} onJobSaved={fnSaved} />
-              </motion.div>
+                job={j}
+                index={i}
+                savedInit={savedJobIds.has(j.id)}
+                mySkills={mySkills}
+                onOpen={(id) => navigate(`/dashboard/jobs?job=${id}`)}
+              />
             ))}
           </div>
         ) : (
@@ -351,7 +340,7 @@ const DashboardPage = () => {
           to={applications?.length ? "/applications" : null}
         />
         {loadingApps !== false ? (
-          <BarLoader width={"100%"} color="#7c5cff" />
+          <BarLoader width={"100%"} color="var(--primary)" />
         ) : applications?.length ? (
           <div className="flex flex-col gap-3">
             {applications.slice(0, 5).map((a, i) => (
@@ -359,7 +348,7 @@ const DashboardPage = () => {
             ))}
           </div>
         ) : (
-          <EmptyState text="No applications yet." cta={{ to: "/jobs", label: "Browse Jobs" }} />
+          <EmptyState text="No applications yet." cta={{ to: "/dashboard/jobs", label: "Browse Jobs" }} />
         )}
       </motion.section>
 
@@ -386,7 +375,7 @@ const DashboardPage = () => {
       <motion.section variants={item}>
         <SectionHeader eyebrow="Timeline" title="Recent activity" />
         {activity.length ? (
-          <div className="hairline overflow-hidden rounded-2xl bg-surface/60">
+          <div className="hairline overflow-hidden rounded-[var(--radius-card)] card-surface">
             {activity.map((e, i) => (
               <motion.div
                 key={e.id}
@@ -413,7 +402,7 @@ const DashboardPage = () => {
             ))}
           </div>
         ) : (
-          <EmptyState text="Nothing here yet — start by browsing jobs." cta={{ to: "/jobs", label: "Browse Jobs" }} />
+          <EmptyState text="Nothing here yet — start by browsing jobs." cta={{ to: "/dashboard/jobs", label: "Browse Jobs" }} />
         )}
       </motion.section>
     </motion.div>
@@ -427,7 +416,7 @@ const DashboardPage = () => {
 const MiniStat = ({ icon: Icon, label, value, to, accent }) => (
   <Link
     to={to}
-    className="group relative flex items-center gap-2.5 overflow-hidden rounded-2xl border border-border bg-background/40 px-3.5 py-3 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-border-strong"
+    className="group relative flex items-center gap-2.5 overflow-hidden rounded-2xl border border-border bg-card px-3.5 py-3 shadow-[var(--shadow-1)] transition-all duration-300 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[var(--shadow-2)]"
   >
     <div
       className="grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110"
@@ -439,7 +428,7 @@ const MiniStat = ({ icon: Icon, label, value, to, accent }) => (
       <div className="font-display text-xl leading-none">{value}</div>
       <div className="mt-1 truncate text-[11px] text-muted-foreground">{label}</div>
     </div>
-    <ArrowUpRight className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+    <ArrowUpRight className="ml-auto hidden h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity duration-300 group-hover:opacity-100 sm:block" />
   </Link>
 );
 
@@ -464,7 +453,7 @@ const SectionHeader = ({ eyebrow, title, to }) => (
 );
 
 const TodaysFocusCard = ({ items }) => (
-  <div className="hover-lift flex h-full flex-col rounded-3xl border border-border bg-surface/60 p-6">
+  <div className="hover-lift flex h-full flex-col rounded-[var(--radius-card)] border border-border card-surface p-6">
     <div className="text-[11px] font-medium uppercase tracking-wider text-primary/80">Today's Focus</div>
     <div className="mt-4 flex flex-1 flex-col gap-1">
       {items.map((it) => (
@@ -474,7 +463,7 @@ const TodaysFocusCard = ({ items }) => (
           className="group flex items-center gap-2.5 rounded-xl px-2 py-2.5 transition-colors hover:bg-surface-2/60"
         >
           {it.done ? (
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
           ) : (
             <Circle className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
           )}
@@ -505,11 +494,11 @@ const InsightsCard = ({ funnel }) => {
   const max = Math.max(1, ...stages.map((s) => s.count));
 
   return (
-    <div className="hover-lift flex h-full flex-col rounded-3xl border border-border bg-surface/60 p-6">
+    <div className="hover-lift flex h-full flex-col rounded-[var(--radius-card)] border border-border card-surface p-6">
       <div className="flex items-center justify-between">
         <div className="text-[11px] font-medium uppercase tracking-wider text-primary/80">Application Insights</div>
         {funnel.responseRate !== null && (
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400">
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
             <TrendingUp className="h-3 w-3" /> {funnel.responseRate}% moving forward
           </span>
         )}
@@ -518,7 +507,7 @@ const InsightsCard = ({ funnel }) => {
       {funnel.total === 0 ? (
         <div className="mt-4 flex flex-1 flex-col items-center justify-center gap-2 text-center">
           <p className="text-sm text-muted-foreground">Apply to a few roles and your funnel shows up here.</p>
-          <Link to="/jobs" className="text-sm font-medium text-primary hover:underline">
+         <Link to="/dashboard/jobs" className="text-sm font-medium text-primary hover:underline">
             Browse Jobs →
           </Link>
         </div>
@@ -564,13 +553,13 @@ const ApplicationRow = ({ application: a, index }) => {
     >
       <Link
         to="/applications"
-        className="hairline group flex flex-col gap-3 rounded-2xl bg-surface/60 p-4 transition-colors hover:border-border-strong sm:flex-row sm:items-center sm:gap-4"
+        className="hairline group flex flex-col gap-3 rounded-[var(--radius-card)] card-surface p-4 transition-colors hover:border-border-strong sm:flex-row sm:items-center sm:gap-4"
       >
         {a.job?.company?.logo_url ? (
           <img
             src={a.job.company.logo_url}
             alt=""
-            className="h-9 w-9 shrink-0 rounded-lg bg-white/5 object-contain p-1"
+            className="h-9 w-9 shrink-0 rounded-lg bg-surface-2 object-contain p-1"
           />
         ) : (
           <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-primary to-cyan text-primary-foreground">
@@ -613,7 +602,7 @@ const ApplicationRow = ({ application: a, index }) => {
 };
 
 const ResumeCard = ({ profile }) => (
-  <div className="hover-lift group relative h-full overflow-hidden rounded-3xl border border-border bg-surface/60 p-6">
+  <div className="hover-lift group relative h-full overflow-hidden rounded-[var(--radius-card)] border border-border card-surface p-6">
     <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-primary/10 blur-2xl transition-opacity duration-300 group-hover:opacity-80" />
     <div className="relative mb-4 flex items-center gap-2 text-sm font-semibold">
       <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary/10 text-primary">
@@ -623,7 +612,7 @@ const ResumeCard = ({ profile }) => (
     </div>
     {profile?.resume_url ? (
       <>
-        <div className="flex items-center gap-1.5 text-xs text-emerald-400">
+        <div className="flex items-center gap-1.5 text-xs text-emerald-600">
           <CheckCircle2 className="h-3.5 w-3.5" /> Uploaded
         </div>
         <div className="mt-1 truncate text-sm text-muted-foreground">
@@ -637,7 +626,7 @@ const ResumeCard = ({ profile }) => (
         <div className="mt-5 flex gap-2">
           <Link
             to="/resume"
-            className="hairline inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-medium transition-colors hover:border-primary/50 hover:bg-primary/5"
+            className="hairline inline-flex items-center gap-1.5 rounded-[var(--radius-btn)] px-3.5 py-2 text-xs font-medium transition-colors hover:border-primary/50 hover:bg-primary/5"
           >
             Replace Resume
           </Link>
@@ -670,7 +659,7 @@ const ProfileCompletionCard = ({ profile, completion }) => {
   ];
 
   return (
-    <div className="hover-lift flex h-full flex-col rounded-3xl border border-border bg-surface/60 p-6">
+    <div className="hover-lift flex h-full flex-col rounded-[var(--radius-card)] border border-border card-surface p-6">
       <div className="flex items-center gap-2 text-sm font-semibold">
         <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary/10 text-primary">
           <User className="h-4 w-4" />
@@ -697,8 +686,8 @@ const ProfileCompletionCard = ({ profile, completion }) => {
             />
             <defs>
               <linearGradient id="profileGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#7c5cff" />
-                <stop offset="100%" stopColor="#22d3ee" />
+                <stop offset="0%" stopColor="var(--primary)" />
+                <stop offset="100%" stopColor="var(--accent-cyan)" />
               </linearGradient>
             </defs>
           </svg>
@@ -717,7 +706,7 @@ const ProfileCompletionCard = ({ profile, completion }) => {
 
       <Link
         to="/profile"
-        className="hairline mt-5 inline-flex w-fit items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-medium transition-colors hover:border-primary/50 hover:bg-primary/5"
+        className="hairline mt-5 inline-flex w-fit items-center gap-1.5 rounded-[var(--radius-btn)] px-3.5 py-2 text-xs font-medium transition-colors hover:border-primary/50 hover:bg-primary/5"
       >
         {completion === 100 ? "View Profile" : "Complete Profile"}
       </Link>
@@ -730,7 +719,7 @@ const ProfileCompletionCard = ({ profile, completion }) => {
 // experience; here it's just a scannable list so this row of the
 // dashboard doesn't repeat that page's job cards.
 const ShortlistCard = ({ savedJobs, loading }) => (
-  <div className="hover-lift flex h-full flex-col rounded-3xl border border-border bg-surface/60 p-6">
+  <div className="hover-lift flex h-full flex-col rounded-[var(--radius-card)] border border-border card-surface p-6">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2 text-sm font-semibold">
         <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary/10 text-primary">
@@ -751,20 +740,20 @@ const ShortlistCard = ({ savedJobs, loading }) => (
 
     <div className="mt-3 flex flex-1 flex-col">
       {loading !== false ? (
-        <BarLoader width={"100%"} color="#7c5cff" />
+        <BarLoader width={"100%"} color="var(--primary)" />
       ) : savedJobs?.length ? (
         <div className="flex flex-col divide-y divide-border/60">
           {savedJobs.slice(0, 4).map((s) => (
             <Link
               key={s.id}
-              to={`/jobs/${s.job?.id}`}
+              to={`/dashboard/jobs?job=${s.job?.id}`}
               className="group flex items-center gap-2.5 py-2.5 first:pt-0 last:pb-0"
             >
               {s.job?.company?.logo_url ? (
                 <img
                   src={s.job.company.logo_url}
                   alt=""
-                  className="h-8 w-8 shrink-0 rounded-md bg-white/5 object-contain p-1"
+                  className="h-8 w-8 shrink-0 rounded-md bg-surface-2 object-contain p-1"
                 />
               ) : (
                 <div className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-gradient-to-br from-primary to-cyan text-primary-foreground">
@@ -782,7 +771,7 @@ const ShortlistCard = ({ savedJobs, loading }) => (
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 py-4 text-center">
           <p className="text-sm text-muted-foreground">No saved jobs yet.</p>
-          <Link to="/jobs" className="text-sm font-medium text-primary hover:underline">
+          <Link to="/dashboard/jobs" className="text-sm font-medium text-primary hover:underline">
             Browse Jobs →
           </Link>
         </div>
@@ -792,7 +781,7 @@ const ShortlistCard = ({ savedJobs, loading }) => (
 );
 
 const EmptyState = ({ text, cta }) => (
-  <div className="hairline flex flex-col items-center gap-3 rounded-2xl bg-surface/40 p-10 text-center">
+  <div className="hairline flex flex-col items-center gap-3 rounded-[var(--radius-card)] card-surface p-10 text-center">
     <p className="text-sm text-muted-foreground">{text}</p>
     {cta && (
       <Link to={cta.to} className="text-sm font-medium text-primary hover:underline">

@@ -28,7 +28,7 @@ const ApplicationCard = ({ application, isCandidate = false, jobTitle, onStatusU
 
   return (
     <Card>
-      {loadingHiringStatus && <BarLoader width={"100%"} color="#7c5cff" />}
+      {loadingHiringStatus && <BarLoader width={"100%"} color="var(--primary)" />}
       <CardHeader>
         <CardTitle className="flex justify-between font-bold">
           {isCandidate
@@ -36,7 +36,7 @@ const ApplicationCard = ({ application, isCandidate = false, jobTitle, onStatusU
             : application?.name}
           <Download
             size={18}
-            className="bg-white text-black rounded-full h-8 w-8 p-1.5 cursor-pointer"
+            className="rounded-full bg-surface-2 text-foreground h-8 w-8 p-1.5 cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors"
             onClick={handleDownload}
           />
         </CardTitle>

@@ -2,19 +2,17 @@ import { useState } from "react";
 import { useUser, useClerk, useSession } from "@clerk/react";
 import { useNavigate } from "react-router-dom";
 import { BarLoader } from "react-spinners";
-import { User, ShieldCheck, Bell, Lock, ExternalLink, AlertTriangle } from "lucide-react";
+import { User, ShieldCheck, Bell, Lock, ExternalLink, AlertTriangle, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { deleteOwnedCompanies, removeUserFromAllCompanies } from "@/api/apiCompanies";
+// import AmbientOrbs from "@/components/ambient-orbs";
 
-// Tabbed settings layout — a different pattern from the card-grid pages
-// elsewhere, since settings is naturally a "pick a section, view its
-// content" flow rather than a list of items to scan.
 const SECTIONS = [
-  { key: "account", label: "Account", icon: User },
-  { key: "security", label: "Security", icon: ShieldCheck },
-  { key: "notifications", label: "Notifications", icon: Bell },
-  { key: "privacy", label: "Privacy", icon: Lock },
+  { key: "account", label: "Account", icon: User, desc: "Identity & sign-in" },
+  { key: "security", label: "Security", icon: ShieldCheck, desc: "Password & 2FA" },
+  { key: "notifications", label: "Notifications", icon: Bell, desc: "Alerts & digests" },
+  { key: "privacy", label: "Privacy", icon: Lock, desc: "Data & account" },
 ];
 
 const SettingsPage = () => {
@@ -27,15 +25,11 @@ const SettingsPage = () => {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
 
-  if (!isLoaded) return <BarLoader className="mb-4" width={"100%"} color="#7c5cff" />;
+  if (!isLoaded) return <BarLoader className="mb-4" width={"100%"} color="var(--primary)" />;
 
   const isEmployer = user?.unsafeMetadata?.role === "recruiter";
   const role = isEmployer ? "Employer" : "Candidate";
 
-  // Employer-only: wipe every company they own (cascades to jobs,
-  // applications, offices, and team members in Supabase), drop any
-  // memberships on teams they don't own, then delete the Clerk account
-  // itself. There's no undo past this point.
   const handleDeleteAccount = async () => {
     if (confirmText.trim() !== "delete my account" || !user) return;
     setDeleting(true);
@@ -54,53 +48,68 @@ const SettingsPage = () => {
   };
 
   return (
-    <div>
-      <h1 className="mb-6 font-display text-3xl">Settings</h1>
+    <div className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl px-2 py-2">
+      {/* <AmbientOrbs /> */}
+      <div className="mb-8 text-center sm:text-left">
+        <h1 className="font-display text-4xl">Settings</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Manage your account, security, and privacy.</p>
+      </div>
 
-      <div className="grid gap-6 md:grid-cols-[180px_1fr]">
-        <nav className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
-          {SECTIONS.map((s) => {
+      <div className="grid gap-4 md:grid-cols-[220px_1fr]">
+        <nav className="scrollbar-none flex gap-2 overflow-x-auto md:flex-col md:overflow-visible">
+          {SECTIONS.map((s, i) => {
             const Icon = s.icon;
+            const isActive = active === s.key;
             return (
               <button
                 key={s.key}
                 onClick={() => setActive(s.key)}
                 className={cn(
-                  "flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors",
-                  active === s.key
-                    ? "bg-surface-2 text-foreground"
-                    : "text-muted-foreground hover:bg-surface-2/50 hover:text-foreground"
+                  "animate-in fade-in slide-in-from-bottom-2 hairline flex shrink-0 items-center gap-3 rounded-2xl px-3.5 py-3 text-left transition-all duration-200 hover:border-primary/40",
+                  isActive ? "border-primary/50 bg-primary/5" : "hover:bg-surface-2/50"
                 )}
+                style={{ animationDelay: `${i * 50}ms`, animationDuration: "350ms", animationFillMode: "backwards" }}
               >
-                <Icon className="h-3.5 w-3.5 shrink-0" />
-                {s.label}
+                <div
+                  className={cn(
+                    "grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-colors duration-200",
+                    isActive ? "bg-primary/15 text-primary" : "bg-surface-2 text-muted-foreground"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className={cn("text-sm font-medium", isActive && "text-primary")}>{s.label}</div>
+                  <div className="hidden truncate text-[11px] text-muted-foreground md:block">{s.desc}</div>
+                </div>
               </button>
             );
           })}
         </nav>
 
-        <div className="hairline rounded-xl bg-surface/60 p-6">
+        <div key={active} className="animate-in fade-in slide-in-from-bottom-1 hairline rounded-[24px] bg-elevated p-6 duration-300">
           {active === "account" && (
-            <div className="space-y-5">
-              <div className="flex items-center gap-3">
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
                 {user?.imageUrl ? (
-                  <img src={user.imageUrl} alt="" className="h-12 w-12 rounded-full" />
+                  <img src={user.imageUrl} alt="" className="h-14 w-14 rounded-2xl ring-1 ring-border" />
                 ) : (
-                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-primary to-cyan" />
+                  <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary to-cyan" />
                 )}
                 <div>
-                  <div className="font-medium">{user?.fullName || "—"}</div>
+                  <div className="text-lg font-medium">{user?.fullName || "—"}</div>
                   <div className="text-sm text-muted-foreground">{user?.primaryEmailAddress?.emailAddress}</div>
                 </div>
               </div>
-              <div className="flex items-center justify-between border-t border-border/60 pt-4 text-sm">
+
+              <div className="hairline my-2 border-t" />
+
+              <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Account type</span>
-                <span className="rounded-full border border-border bg-surface-2 px-2.5 py-0.5 text-xs">{role}</span>
+                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">{role}</span>
               </div>
-              <button
-                onClick={() => signOut()}
-                className="text-sm text-destructive hover:underline"
-              >
+
+              <button onClick={() => signOut()} className="text-sm text-destructive transition-colors hover:underline">
                 Sign out
               </button>
             </div>
@@ -113,7 +122,7 @@ const SettingsPage = () => {
               </p>
               <button
                 onClick={() => openUserProfile()}
-                className="flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+                className="hover-lift flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-[0_0_0_0_rgba(124,92,255,0)] transition-shadow duration-200 hover:shadow-[0_0_30px_rgba(124,92,255,0.3)]"
               >
                 Manage security <ExternalLink className="h-3.5 w-3.5" />
               </button>
@@ -121,9 +130,14 @@ const SettingsPage = () => {
           )}
 
           {active === "notifications" && (
-            <p className="text-sm text-muted-foreground">
-              Notification preferences (email digests, application status alerts) are coming in a future update.
-            </p>
+            <div className="flex flex-col items-center gap-3 py-8 text-center">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                <Bell className="h-4.5 w-4.5" />
+              </div>
+              <p className="max-w-sm text-sm text-muted-foreground">
+                Notification preferences — email digests, application status alerts — are coming in a future update.
+              </p>
+            </div>
           )}
 
           {active === "privacy" && (
@@ -134,7 +148,7 @@ const SettingsPage = () => {
               </p>
 
               {isEmployer ? (
-                <div className="hairline space-y-4 rounded-lg border-destructive/30 bg-destructive/5 p-4">
+                <div className="hairline space-y-4 rounded-2xl border-destructive/30 bg-destructive/5 p-5">
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
                     <div className="text-xs text-muted-foreground">
@@ -158,12 +172,12 @@ const SettingsPage = () => {
                   </div>
 
                   {deleteError && <p className="text-xs text-destructive">{deleteError}</p>}
-                  {deleting && <BarLoader width={"100%"} color="#7c5cff" />}
+                  {deleting && <BarLoader width={"100%"} color="var(--primary)" />}
 
                   <button
                     onClick={handleDeleteAccount}
                     disabled={confirmText.trim() !== "delete my account" || deleting}
-                    className="rounded-md bg-destructive/10 px-3.5 py-2 text-sm font-medium text-destructive hover:bg-destructive/20 disabled:pointer-events-none disabled:opacity-50"
+                    className="rounded-xl bg-destructive/10 px-4 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:pointer-events-none disabled:opacity-50"
                   >
                     Delete account permanently
                   </button>

@@ -10,7 +10,7 @@ import useSavedJobIds from "@/hooks/use-saved-job-ids";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { BarLoader } from "react-spinners";
-import { Search, X, Briefcase, Building2, ArrowUpDown } from "lucide-react";
+import { Search, X, Briefcase, Building2, ArrowUpDown, Laptop, IndianRupee } from "lucide-react";
 import {
   Pagination,
   PaginationContent,
@@ -22,9 +22,15 @@ import {
 
 const JOB_TYPES = ["Full-time", "Part-time", "Internship", "Contract"];
 const WORK_MODES = ["Remote", "On-site", "Hybrid"];
+const SALARY_BANDS = [
+  { value: "0-500000", label: "Up to ₹5L", min: 0, max: 500000 },
+  { value: "500000-1000000", label: "₹5L - ₹10L", min: 500000, max: 1000000 },
+  { value: "1000000-2000000", label: "₹10L - ₹20L", min: 1000000, max: 2000000 },
+  { value: "2000000-Infinity", label: "₹20L+", min: 2000000, max: Infinity },
+];
 const SORTS = [
-  { value: "newest", label: "Newest first" },
-  { value: "oldest", label: "Oldest first" },
+  { value: "newest", label: "Newest" },
+  { value: "oldest", label: "Oldest" },
   { value: "salary", label: "Highest salary" },
 ];
 
@@ -37,7 +43,8 @@ const JobsPage = () => {
   const [company_id, setCompany_id] = useState("");
   const [job_type, setJobType] = useState("");
   const [work_mode, setWorkMode] = useState("");
-  const [sort, setSort] = useState("newest");
+  const [salary, setSalary] = useState("");
+  const [sort, setSort] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
   const jobsPerPage = 9;
@@ -66,6 +73,10 @@ const JobsPage = () => {
     setCurrentPage(1);
   }, [location, company_id, searchQuery, job_type, work_mode]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [salary]);
+
   const handleSearch = (e) => {
     e.preventDefault();
     let formData = new FormData(e.target);
@@ -80,10 +91,11 @@ const JobsPage = () => {
     setLocation("");
     setJobType("");
     setWorkMode("");
+    setSalary("");
     setCurrentPage(1);
   };
 
-  const hasFilters = !!(searchQuery || company_id || location || job_type || work_mode);
+  const hasFilters = !!(searchQuery || company_id || location || job_type || work_mode || salary);
 
   // Sorting happens client-side over the already-fetched, already-filtered
   // list — getJobs() returns newest-first from the API, so "newest" needs
@@ -91,14 +103,26 @@ const JobsPage = () => {
   // (the real numeric column — salary_range is just its display string).
   const sortedJobs = useMemo(() => {
     if (!jobs) return jobs;
-    const list = [...jobs];
+    let list = [...jobs];
+
+    if (salary) {
+      const band = SALARY_BANDS.find((b) => b.value === salary);
+      if (band) {
+        list = list.filter((job) => {
+          const value = Number(job.salary_max ?? job.salary_min);
+          if (!Number.isFinite(value)) return false;
+          return value >= band.min && value <= band.max;
+        });
+      }
+    }
+
     if (sort === "oldest") {
       list.reverse();
     } else if (sort === "salary") {
       list.sort((a, b) => (Number(b.salary_max) || 0) - (Number(a.salary_max) || 0));
     }
     return list;
-  }, [jobs, sort]);
+  }, [jobs, sort, salary]);
 
   const indexOfLast = currentPage * jobsPerPage;
   const indexOfFirst = indexOfLast - jobsPerPage;
@@ -115,6 +139,11 @@ const JobsPage = () => {
     },
     job_type && { key: "job_type", label: job_type, clear: () => setJobType("") },
     work_mode && { key: "work_mode", label: work_mode, clear: () => setWorkMode("") },
+    salary && {
+      key: "salary",
+      label: SALARY_BANDS.find((b) => b.value === salary)?.label || "Salary",
+      clear: () => setSalary(""),
+    },
   ].filter(Boolean);
 
   return (
@@ -134,31 +163,36 @@ const JobsPage = () => {
       </div>
 
       <form onSubmit={handleSearch} className="mx-auto mb-4 flex w-full max-w-3xl gap-2">
-        <div className="hairline relative flex-1 rounded-lg bg-surface">
+        <div className="hairline relative flex-1 rounded-lg bg-surface shadow-none">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
             placeholder="Job title, skill, or company..."
             name="search-query"
             defaultValue={searchQuery}
-            className="h-11 border-none bg-transparent pl-9 text-sm"
+            className="h-11 appearance-none border-none bg-transparent pl-9 text-sm shadow-none dark:bg-transparent"
           />
         </div>
-        <Button type="submit" size="lg" className="h-11">
+        <Button type="submit" size="lg" className="h-11 shadow-none">
           Search
         </Button>
       </form>
 
-      <div className="mx-auto mb-4 grid max-w-4xl grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-        <div className="hairline rounded-lg bg-surface">
-          <CitySelect value={location} onChange={setLocation} placeholder="Any location" />
+      <div className="mx-auto mb-4 grid max-w-4xl grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="hairline rounded-lg bg-surface shadow-none">
+          <CitySelect
+            value={location}
+            onChange={setLocation}
+            placeholder="Location"
+            inputClassName="h-11 appearance-none shadow-none dark:bg-transparent"
+          />
         </div>
 
-        <div className="hairline flex items-center gap-2 rounded-lg bg-surface px-1">
+        <div className="hairline flex h-11 items-center gap-2 rounded-lg bg-surface px-1 shadow-none">
           <Building2 className="ml-2 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <Select value={company_id} onValueChange={(value) => setCompany_id(value)}>
-            <SelectTrigger className="border-none bg-transparent">
-              <SelectValue placeholder="Any company" />
+            <SelectTrigger className="h-11 flex-1 min-w-0 border-none bg-transparent shadow-none dark:bg-transparent dark:hover:bg-transparent data-[size=default]:h-11">
+              <SelectValue placeholder="Company" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
@@ -172,11 +206,11 @@ const JobsPage = () => {
           </Select>
         </div>
 
-        <div className="hairline flex items-center gap-2 rounded-lg bg-surface px-1">
+        <div className="hairline flex h-11 items-center gap-2 rounded-lg bg-surface px-1 shadow-none">
           <Briefcase className="ml-2 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <Select value={job_type} onValueChange={(value) => setJobType(value)}>
-            <SelectTrigger className="border-none bg-transparent">
-              <SelectValue placeholder="Any job type" />
+            <SelectTrigger className="h-11 flex-1 min-w-0 border-none bg-transparent shadow-none dark:bg-transparent dark:hover:bg-transparent data-[size=default]:h-11">
+              <SelectValue placeholder="Job Type" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
@@ -190,10 +224,11 @@ const JobsPage = () => {
           </Select>
         </div>
 
-        <div className="hairline flex items-center gap-2 rounded-lg bg-surface px-1">
+        <div className="hairline flex h-11 items-center gap-2 rounded-lg bg-surface px-1 shadow-none">
+          <Laptop className="ml-2 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <Select value={work_mode} onValueChange={(value) => setWorkMode(value)}>
-            <SelectTrigger className="border-none bg-transparent">
-              <SelectValue placeholder="Any work mode" />
+            <SelectTrigger className="h-11 flex-1 min-w-0 border-none bg-transparent shadow-none dark:bg-transparent dark:hover:bg-transparent data-[size=default]:h-11">
+              <SelectValue placeholder="Work Mode" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
@@ -207,10 +242,28 @@ const JobsPage = () => {
           </Select>
         </div>
 
-        <div className="hairline flex items-center gap-2 rounded-lg bg-surface px-1">
+        <div className="hairline flex h-11 items-center gap-2 rounded-lg bg-surface px-1 shadow-none">
+          <IndianRupee className="ml-2 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <Select value={salary} onValueChange={(value) => setSalary(value)}>
+            <SelectTrigger className="h-11 flex-1 min-w-0 border-none bg-transparent shadow-none dark:bg-transparent dark:hover:bg-transparent data-[size=default]:h-11">
+              <SelectValue placeholder="Salary" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {SALARY_BANDS.map((b) => (
+                  <SelectItem key={b.value} value={b.value}>
+                    {b.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="hairline flex h-11 items-center gap-2 rounded-lg bg-surface px-1 shadow-none">
           <ArrowUpDown className="ml-2 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <Select value={sort} onValueChange={setSort}>
-            <SelectTrigger className="border-none bg-transparent">
+            <SelectTrigger className="h-11 flex-1 min-w-0 border-none bg-transparent shadow-none dark:bg-transparent dark:hover:bg-transparent data-[size=default]:h-11">
               <SelectValue placeholder="Sort" />
             </SelectTrigger>
             <SelectContent>
@@ -249,11 +302,11 @@ const JobsPage = () => {
       )}
 
       {loadingJobs !== false && (
-        <BarLoader className="mt-4" width={"100%"} color="#7c5cff" />
+        <BarLoader className="mt-4" width={"100%"} color="var(--primary)" />
       )}
 
       {loadingJobs === false && (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {currentJobs?.length ? (
             currentJobs.map((job) => (
               <JobCard key={job.id} job={job} savedInit={savedIdSet.has(job.id)} />

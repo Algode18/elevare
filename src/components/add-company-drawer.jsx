@@ -106,7 +106,7 @@ const AddCompanyDrawer = ({ fetchCompanies }) => {
           {errorAddCompany?.message && (
             <p className="text-sm text-red-500">{errorAddCompany.message}</p>
           )}
-          {loadingAddCompany && <BarLoader width={"100%"} color="#7c5cff" />}
+          {loadingAddCompany && <BarLoader width={"100%"} color="var(--primary)" />}
         </form>
 
         <DrawerFooter>

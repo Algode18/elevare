@@ -39,6 +39,23 @@ export async function getCompanyById(token, { company_id }) {
   return data;
 }
 
+// Fire-and-forget view counter for the public company-details page. Uses an
+// RPC (increment_company_profile_views, defined in Supabase) instead of a
+// read-then-write from the client so concurrent visitors can't clobber each
+// other's increment. No token needed — candidates browsing anonymously can
+// still trigger this since it only ever adds 1, never reads/writes anything
+// else.
+export async function incrementCompanyProfileView(company_id) {
+  const supabase = await supabaseClient();
+  const { error } = await supabase.rpc("increment_company_profile_views", {
+    p_company_id: company_id,
+  });
+
+  if (error) {
+    console.error("Error incrementing profile views:", error);
+  }
+}
+
 // Companies this Clerk user actually owns — drives the "which workspace(s)
 // can I manage" picker on the /employer/company list page.
 export async function getMyCompanies(token, { owner_id }) {
@@ -496,14 +513,17 @@ export async function getCompanyAnalytics(token, { company_id }) {
   const rejected = allApplications.filter((a) => rejectedStatuses.includes(a.status));
 
   const avgDays = (rows) => {
-    if (!rows.length) return null;
-    const totalMs = rows.reduce((sum, a) => {
+    const valid = rows.filter((a) => a.created_at && a.status_updated_at);
+    if (!valid.length) return null;
+    const totalMs = valid.reduce((sum, a) => {
       const start = new Date(a.created_at).getTime();
       const end = new Date(a.status_updated_at).getTime();
       return sum + Math.max(0, end - start);
     }, 0);
-    return Math.round(totalMs / rows.length / (1000 * 60 * 60 * 24));
+    return Math.round(totalMs / valid.length / (1000 * 60 * 60 * 24));
   };
+
+  const decided = allApplications.filter((a) => a.status !== "applied");
 
   const mostApplied = jobs
     .map((j) => ({ id: j.id, title: j.title, count: j.applications?.length ?? 0 }))
@@ -525,7 +545,7 @@ export async function getCompanyAnalytics(token, { company_id }) {
       ? Math.round((hired.length / (hired.length + rejected.length)) * 100)
       : 0,
     avg_hiring_time_days: avgDays(hired),
-    avg_response_time_days: avgDays(allApplications),
+    avg_response_time_days: avgDays(decided),
     most_applied_job: mostApplied,
   };
 }

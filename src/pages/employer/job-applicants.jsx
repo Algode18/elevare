@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { useSession, useUser } from "@clerk/react";
 import { BarLoader } from "react-spinners";
 import {
+  BadgeCheck,
   Boxes,
   Briefcase,
   Check,
@@ -221,7 +222,7 @@ const EmployerJobApplicantsPage = () => {
   };
 
   if (!isLoaded || loadingJob !== false) {
-    return <BarLoader className="mb-4" width={"100%"} color="#7c5cff" />;
+    return <BarLoader className="mb-4" width={"100%"} color="var(--primary)" />;
   }
 
   if (!job) {
@@ -257,7 +258,12 @@ const EmployerJobApplicantsPage = () => {
             <Chip tone={job.isOpen ? "lime" : "danger"}>{job.isOpen ? "Open" : "Closed"}</Chip>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
-            <span>{job.company?.name}</span>
+            <span className="flex items-center gap-1">
+              {job.company?.name}
+              {job.company?.verification_status === "verified" && (
+                <BadgeCheck className="h-3.5 w-3.5 text-cyan" aria-label="Verified company" />
+              )}
+            </span>
             <span className="text-muted-foreground/40">•</span>
             <span className="flex items-center gap-1">
               <Users className="h-3.5 w-3.5" /> {applications.length} applicant
@@ -273,37 +279,37 @@ const EmployerJobApplicantsPage = () => {
           <p className="mt-1 text-sm text-muted-foreground">Manage candidates applying for this role.</p>
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <Link
-            to={`/employer/post-job?edit=${job.id}`}
-            state={{ from: { path: `/employer/jobs/${job.id}/applicants`, label: "Applicants" } }}
-            className="hairline flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-2"
-          >
-            <Pencil className="h-3.5 w-3.5" /> Edit Job
-          </Link>
-          <Link
-            to={`/jobs/${job.id}?preview=1`}
-            state={{ from: { path: `/employer/jobs/${job.id}/applicants`, label: "Applicants" } }}
-            className="hairline flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-2"
-          >
-            <Eye className="h-3.5 w-3.5" /> View Posting
-          </Link>
-          <button
-            type="button"
-            onClick={handleCopyLink}
-            className="hairline flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-2"
-          >
-            <Copy className="h-3.5 w-3.5" /> {copied ? "Copied!" : "Share"}
-          </button>
-          <button
-            type="button"
-            onClick={handleTogglePause}
-            className="hairline flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-2"
-          >
-            {job.isOpen ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-            {job.isOpen ? "Pause Job" : "Reopen Job"}
-          </button>
-        </div>
+       <div className="grid w-full grid-cols-4 gap-1.5 sm:flex sm:w-auto sm:flex-wrap sm:gap-2">
+  <Link
+    to={`/employer/post-job?edit=${job.id}`}
+    state={{ from: { path: `/employer/jobs/${job.id}/applicants`, label: "Applicants" } }}
+    className="hairline flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium text-foreground hover:bg-surface-2 sm:w-auto sm:px-3 sm:text-xs"
+  >
+    <Pencil className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Edit
+  </Link>
+  <Link
+    to={`/jobs/${job.id}?preview=1`}
+    state={{ from: { path: `/employer/jobs/${job.id}/applicants`, label: "Applicants" } }}
+    className="hairline flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium text-foreground hover:bg-surface-2 sm:w-auto sm:px-3 sm:text-xs"
+  >
+    <Eye className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Preview
+  </Link>
+  <button
+    type="button"
+    onClick={handleCopyLink}
+    className="hairline flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium text-foreground hover:bg-surface-2 sm:w-auto sm:px-3 sm:text-xs"
+  >
+    <Copy className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> {copied ? "Copied!" : "Share"}
+  </button>
+  <button
+    type="button"
+    onClick={handleTogglePause}
+    className="hairline flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium text-foreground hover:bg-surface-2 sm:w-auto sm:px-3 sm:text-xs"
+  >
+    {job.isOpen ? <Pause className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> : <Play className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
+    {job.isOpen ? "Pause" : "Reopen"}
+  </button>
+</div>
       </div>
 
       {/* KPI strip */}
@@ -345,44 +351,46 @@ const EmployerJobApplicantsPage = () => {
         <>
           {/* Search & filters */}
           <div className="mb-4 flex flex-col gap-2 sm:flex-row">
-            <div className="relative min-w-[220px] flex-1">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="pl-8"
-                placeholder="Search applicants..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="sm:w-44">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="all">All statuses</SelectItem>
-                  <SelectItem value="applied">Applied</SelectItem>
-                  <SelectItem value="reviewed">Reviewed</SelectItem>
-                  <SelectItem value="interviewing">Interviewing</SelectItem>
-                  <SelectItem value="offer">Offer</SelectItem>
-                  <SelectItem value="hired">Hired</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <Select value={sort} onValueChange={setSort}>
-              <SelectTrigger className="sm:w-40">
-                <SelectValue placeholder="Sort" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="newest">Newest</SelectItem>
-                  <SelectItem value="oldest">Oldest</SelectItem>
-                  <SelectItem value="name">Name (A–Z)</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
+  <div className="relative min-w-[220px] flex-1">
+    <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+    <Input
+      className="pl-8"
+      placeholder="Search applicants..."
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+    />
+  </div>
+  <div className="flex gap-2">
+    <Select value={statusFilter} onValueChange={setStatusFilter}>
+      <SelectTrigger className="w-full sm:w-44">
+        <SelectValue placeholder="Status" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectGroup>
+          <SelectItem value="all">All statuses</SelectItem>
+          <SelectItem value="applied">Applied</SelectItem>
+          <SelectItem value="reviewed">Reviewed</SelectItem>
+          <SelectItem value="interviewing">Interviewing</SelectItem>
+          <SelectItem value="offer">Offer</SelectItem>
+          <SelectItem value="hired">Hired</SelectItem>
+          <SelectItem value="rejected">Rejected</SelectItem>
+        </SelectGroup>
+      </SelectContent>
+    </Select>
+    <Select value={sort} onValueChange={setSort}>
+      <SelectTrigger className="w-full sm:w-40">
+        <SelectValue placeholder="Sort" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectGroup>
+          <SelectItem value="newest">Newest</SelectItem>
+          <SelectItem value="oldest">Oldest</SelectItem>
+          <SelectItem value="name">Name (A–Z)</SelectItem>
+        </SelectGroup>
+      </SelectContent>
+    </Select>
+  </div>
+</div>
 
           {filteredSorted.length === 0 ? (
             <div className="hairline flex flex-col items-center gap-2 rounded-2xl bg-surface p-12 text-center">
@@ -478,7 +486,7 @@ const CandidateDetailPanel = ({
   nextStage,
 }) => (
   <div className="hairline flex flex-col gap-5 rounded-xl bg-surface p-5">
-    {updating && <BarLoader width={"100%"} color="#7c5cff" />}
+    {updating && <BarLoader width={"100%"} color="var(--primary)" />}
 
     <div className="flex items-start justify-between gap-3">
       <div>
@@ -550,43 +558,34 @@ const CandidateDetailPanel = ({
       />
     </div>
 
-    <div className="flex flex-wrap gap-2 border-t border-border/60 pt-4">
-      <button
-        type="button"
-        onClick={onDownload}
-        disabled={!application.resume}
-        className="hairline flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-2 disabled:opacity-40"
-      >
-        <Download className="h-3.5 w-3.5" /> Resume
-      </button>
-      {nextStage && (
-        <button
-          type="button"
-          onClick={() => onStatusChange(nextStage)}
-          className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
-        >
-          <ChevronRight className="h-3.5 w-3.5" /> Move to {STATUS_LABEL[nextStage]}
-        </button>
-      )}
-      {application.status !== "hired" && (
-        <button
-          type="button"
-          onClick={() => onStatusChange("hired")}
-          className="flex items-center gap-1.5 rounded-md bg-lime/15 px-3 py-1.5 text-xs font-medium text-lime hover:bg-lime/25"
-        >
-          <Check className="h-3.5 w-3.5" /> Hire
-        </button>
-      )}
-      {application.status !== "rejected" && (
-        <button
-          type="button"
-          onClick={() => onStatusChange("rejected")}
-          className="flex items-center gap-1.5 rounded-md bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/20"
-        >
-          <X className="h-3.5 w-3.5" /> Reject
-        </button>
-      )}
-    </div>
+    <div className="flex gap-2 border-t border-border/60 pt-4">
+  <button
+    type="button"
+    onClick={onDownload}
+    disabled={!application.resume}
+    className="hairline flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-2 disabled:opacity-40"
+  >
+    <Download className="h-3.5 w-3.5" /> Resume
+  </button>
+  {nextStage && (
+    <button
+      type="button"
+      onClick={() => onStatusChange(nextStage)}
+      className="flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
+    >
+      <ChevronRight className="h-3.5 w-3.5" /> {STATUS_LABEL[nextStage]}
+    </button>
+  )}
+  {application.status !== "rejected" && (
+    <button
+      type="button"
+      onClick={() => onStatusChange("rejected")}
+      className="flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/20"
+    >
+      <X className="h-3.5 w-3.5" /> Reject
+    </button>
+  )}
+</div>
   </div>
 );
 

@@ -3,8 +3,7 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/react";
 import { BarLoader } from "react-spinners";
-import { ArrowRight, Sparkles, Quote, MapPin } from "lucide-react";
-import companies from "../data/companies.json";
+import { ArrowRight, Rocket, Quote, MapPin } from "lucide-react";
 import faqs from "../data/faq.json";
 import { getJobs } from "@/api/apiJobs";
 import usePublicFetch from "@/hooks/use-public-fetch";
@@ -72,7 +71,7 @@ const LandingPage = () => {
   if (!isLoaded || (isSignedIn && isRecruiter)) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center px-6">
-        <BarLoader width={"100%"} color="#7c5cff" />
+        <BarLoader width={"100%"} color="var(--primary)" />
       </div>
     );
   }
@@ -91,29 +90,31 @@ const LandingPage = () => {
             className="text-center"
           >
             <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-border bg-surface/60 px-3 py-1 text-xs backdrop-blur">
-              <Sparkles className="h-3 w-3 text-primary" />
-              <span className="text-muted-foreground">AI-powered career platform</span>
+              <Rocket className="h-3 w-3 text-primary" />
+              <span className="text-muted-foreground">Built for Modern Hiring</span>
             </div>
             <h1 className="mx-auto mt-6 max-w-4xl font-display text-6xl leading-[0.95] md:text-7xl">
-              Build Your Career <span className="gradient-text">with AI.</span>
+              Build Your Career. <span className="gradient-text">Discover Your Next Opportunity.</span>
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl">
-              AI-powered job discovery, professional career management, and smarter hiring —
-              all in one modern platform.
+              Discover jobs, connect with companies, manage applications, and track your career
+              journey — all from one modern platform.
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
               <Link
-                to="/jobs"
-                className="group inline-flex items-center gap-2 rounded-md bg-foreground px-5 py-3 text-sm font-medium text-background hover:opacity-90"
+                to={isSignedIn ? "/dashboard/jobs" : "/jobs"}
+                className="group inline-flex items-center gap-2 rounded-[var(--radius-btn)] bg-primary px-5 py-3 text-sm font-medium text-primary-foreground shadow-[var(--shadow-glow-primary)] hover:bg-[var(--primary-hover)]"
               >
                 Explore Jobs <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
-              <Link
-                to="/employer/post-job"
-                className="hairline inline-flex items-center gap-2 rounded-md bg-surface/60 px-5 py-3 text-sm font-medium backdrop-blur hover:border-border-strong"
-              >
-                For Employers
-              </Link>
+              {!isSignedIn && (
+                <Link
+                  to="/employer/post-job"
+                  className="hairline inline-flex items-center gap-2 rounded-[var(--radius-btn)] bg-surface/60 px-5 py-3 text-sm font-medium backdrop-blur hover:border-border-strong"
+                >
+                  For Employers
+                </Link>
+              )}
             </div>
           </motion.div>
         </div>
@@ -121,21 +122,6 @@ const LandingPage = () => {
 
       {/* 2. CAREER SEARCH EXPERIENCE — main interaction */}
       <SmartSearch />
-
-
-      {/* 4. TRUSTED COMPANIES */}
-      <section className="py-10 overflow-hidden">
-        <div className="text-center text-xs font-mono uppercase tracking-widest text-muted-foreground mb-6">
-          Trusted by Hiring Teams
-        </div>
-        <div className="relative flex overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
-          <div className="flex shrink-0 animate-marquee items-center gap-16 pr-16">
-            {[...companies, ...companies].map((c, i) => (
-              <img key={`${c.id}-${i}`} src={c.path} alt={c.name} className="h-7 object-contain grayscale opacity-70" />
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* 5. PLATFORM FEATURES */}
       <FeaturesBento />
@@ -151,17 +137,17 @@ const LandingPage = () => {
 
       {/* 9. TESTIMONIALS — split candidate/employer, mirrors the two-sided
           marketplace framing already used in Career Journey above */}
-      <section className="mx-auto max-w-7xl px-6 py-24">
+      <section className="mx-auto max-w-7xl px-6 py-16">
         <div className="mb-14 max-w-2xl">
           <div className="text-xs font-mono uppercase tracking-widest text-primary">Testimonials</div>
-          <h2 className="mt-3 font-display text-5xl">What people say.</h2>
+          <h2 className="mt-3 font-display text-5xl">Success Stories.</h2>
         </div>
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {testimonials.map((t, i) => (
-            <div key={i} className="hairline relative overflow-hidden rounded-2xl bg-surface/60 p-8 md:p-10">
+            <div key={i} className="border border-border relative overflow-hidden rounded-[var(--radius-card)] card-surface p-6 sm:p-8 md:p-10">
               <span className="text-xs font-mono uppercase tracking-widest text-primary">{t.side}</span>
               <Quote className="mt-4 h-8 w-8 text-primary/40" />
-              <p className="mt-4 font-display text-2xl leading-snug md:text-3xl">"{t.quote}"</p>
+              <p className="mt-4 font-display text-xl leading-snug sm:text-2xl md:text-3xl">"{t.quote}"</p>
               <div className="mt-8 flex items-center gap-3">
                 <div className="grid h-10 w-10 place-items-center rounded-full bg-surface-2 text-sm font-semibold">
                   {t.name[0]}
@@ -177,8 +163,8 @@ const LandingPage = () => {
       </section>
 
       {/* 10. FAQ */}
-      <section className="mx-auto max-w-3xl px-6 py-24" id="faq">
-        <h2 className="font-display text-5xl">Questions, answered.</h2>
+      <section className="mx-auto max-w-3xl px-6 py-16" id="faq">
+        <h2 className="font-display text-5xl">Frequently Asked Questions.</h2>
         <div className="mt-10 divide-y divide-border">
           {faqs.map((f, i) => (
             <FaqItem key={i} q={f.question} a={f.answer} />
@@ -187,24 +173,24 @@ const LandingPage = () => {
       </section>
 
       {/* 11. FINAL CTA */}
-      <section className="mx-auto max-w-7xl px-6 pb-32">
-        <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/30 via-surface to-cyan/20 p-16 text-center">
+      <section className="mx-auto max-w-7xl px-6 pb-20 sm:pb-32">
+        <div className="relative overflow-hidden rounded-[var(--radius-hero)] border border-border bg-gradient-to-br from-primary/30 via-surface to-cyan/20 p-8 text-center sm:p-16">
           <div className="absolute inset-0 grid-bg opacity-30" />
           <div className="relative">
-            <h2 className="mx-auto max-w-2xl font-display text-6xl">Your Next Opportunity Starts Here.</h2>
-            <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-              Create your profile and discover opportunities that match your skills.
+            <h2 className="mx-auto max-w-2xl font-display text-3xl sm:text-5xl md:text-6xl">Your Next Opportunity Starts Here.</h2>
+            <p className="mx-auto mt-4 max-w-xl text-sm text-muted-foreground sm:text-base">
+              Create your profile, discover jobs, and connect with companies that match your career goals.
             </p>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
               <Link
-                to="?sign-in=true"
-                className="inline-flex items-center gap-2 rounded-md bg-foreground px-6 py-3 text-sm font-medium text-background hover:opacity-90"
+                to="/sign-up"
+                className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-[var(--shadow-glow-primary)] hover:bg-[var(--primary-hover)]"
               >
                 Get Started <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
-                to="/jobs"
-                className="hairline inline-flex items-center gap-2 rounded-md bg-surface/60 px-6 py-3 text-sm font-medium backdrop-blur hover:border-border-strong"
+                to={isSignedIn ? "/dashboard/jobs" : "/jobs"}
+                className="hairline inline-flex items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-surface/60 px-6 py-3 text-sm font-medium backdrop-blur hover:border-border-strong"
               >
                 Browse Jobs
               </Link>

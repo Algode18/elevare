@@ -1,27 +1,32 @@
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/react";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
-import { State } from "country-state-city";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import CitySelect from "@/components/city-select";
 import { BarLoader } from "react-spinners";
 import {
-  CheckCircle2,
-  FileText,
-  UploadCloud,
-  X,
-  ArrowRight,
-  ArrowLeft,
   User,
   Briefcase,
+  GraduationCap,
   Sparkles,
+  FileText,
+  Globe,
+  X,
   Pencil,
+  Check,
+  ArrowRight,
 } from "lucide-react";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerClose,
+} from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -32,37 +37,80 @@ import {
 } from "@/components/ui/select";
 import useFetch from "@/hooks/use-fetch";
 import useProfile from "@/hooks/use-profile";
-import { upsertProfile, uploadProfileResume } from "@/api/apiProfiles";
+import useResumes from "@/hooks/use-resumes";
+import { upsertProfile } from "@/api/apiProfiles";
+import { getProfileSections, getProfileCompletion } from "@/lib/profile-completion";
 import { cn } from "@/lib/utils";
-
-const schema = z.object({
-  full_name: z.string().min(1, { message: "Full name is required" }),
-  headline: z.string().optional(),
-  location: z.string().min(1, { message: "Select a location" }),
-  phone: z.string().optional(),
-  experience_years: z
-    .number({ invalid_type_error: "Enter years of experience" })
-    .min(0, { message: "Must be 0 or more" })
-    .int(),
-  education: z.enum(["Intermediate", "Graduate", "Post Graduate"], {
-    message: "Select your education level",
-  }),
-});
+// import AmbientOrbs from "@/components/ambient-orbs";
 
 const SUGGESTED_SKILLS = [
   "React", "Node.js", "JavaScript", "TypeScript", "Java",
   "Python", "MongoDB", "PostgreSQL", "Tailwind CSS", "Git",
 ];
-
-const STEPS = [
-  { key: "basics", label: "Basics", icon: User },
-  { key: "experience", label: "Experience", icon: Briefcase },
-  { key: "skills", label: "Skills", icon: Sparkles },
-  { key: "resume", label: "Resume", icon: FileText },
-  { key: "review", label: "Review", icon: CheckCircle2 },
-];
-
 const EDUCATION_OPTIONS = ["Intermediate", "Graduate", "Post Graduate"];
+
+const SECTION_ICONS = {
+  personal: User,
+  experience: Briefcase,
+  education: GraduationCap,
+  skills: Sparkles,
+  resume: FileText,
+  preferences: Globe,
+};
+
+function timeAgo(dateStr) {
+  if (!dateStr) return "Never";
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const days = Math.floor(diffMs / 86400000);
+  if (days < 1) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days} days ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
+
+// Counts up 0 -> value once on mount/value change, per the brief's
+// "completion circle count animation" direction.
+const useCountUp = (value, duration = 600) => {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    let raf;
+    const start = performance.now();
+    const tick = (now) => {
+      const progress = Math.min((now - start) / duration, 1);
+      setDisplay(Math.round(progress * value));
+      if (progress < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return display;
+};
+
+const SectionCard = ({ section, index, summary, onEdit, href }) => {
+  const Icon = SECTION_ICONS[section.key];
+  const Wrapper = href ? Link : "button";
+
+  return (
+    <Wrapper
+      to={href}
+      type={href ? undefined : "button"}
+      onClick={href ? undefined : onEdit}
+      className="hover-lift animate-in fade-in slide-in-from-bottom-2 hairline group flex w-full items-center gap-4 rounded-2xl bg-card p-5 text-left hover:border-primary/40"
+      style={{ animationDelay: `${index * 60}ms`, animationDuration: "400ms", animationFillMode: "backwards" }}
+    >
+      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+        <Icon className="h-4.5 w-4.5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-medium">{section.label}</div>
+        <div className="truncate text-xs text-muted-foreground">{summary}</div>
+      </div>
+      <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground group-hover:text-primary">
+        Edit <ArrowRight className="h-3.5 w-3.5" />
+      </span>
+    </Wrapper>
+  );
+};
 
 const ProfilePage = () => {
   const { user, isLoaded } = useUser();
@@ -70,460 +118,285 @@ const ProfilePage = () => {
   const [searchParams] = useSearchParams();
   const nextPath = searchParams.get("next");
 
-  const { profile, loading: loadingProfile, isComplete, refetch } = useProfile();
+  const { profile, loading: loadingProfile, refetch } = useProfile();
+  const { resumes, defaultResume, loading: loadingResumes } = useResumes();
 
-  const [step, setStep] = useState(0);
-  const [direction, setDirection] = useState(1);
+  const [editingSection, setEditingSection] = useState(null); // "personal" | "experience" | ...
+  const [form, setForm] = useState({});
   const [skills, setSkills] = useState([]);
   const [skillInput, setSkillInput] = useState("");
-  const [resumeFile, setResumeFile] = useState(null);
-  const [dragOver, setDragOver] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    reset,
-    trigger,
-    watch,
-    formState: { errors },
-  } = useForm({
-    resolver: zodResolver(schema),
-    mode: "onChange",
-    defaultValues: {
-      full_name: "",
-      headline: "",
-      location: "",
-      phone: "",
-      experience_years: 0,
-    },
-  });
+  const { loading: saving, error: saveError, fn: fnSave } = useFetch(upsertProfile);
 
-  useEffect(() => {
-    if (!isLoaded) return;
-    reset({
+  const openEditor = (key) => {
+    setForm({
       full_name: profile?.full_name || user?.fullName || "",
       headline: profile?.headline || "",
       location: profile?.location || "",
       phone: profile?.phone || "",
-      experience_years: profile?.experience_years ?? 0,
-      education: profile?.education || undefined,
+      experience_years: profile?.experience_years ?? "",
+      education: profile?.education || "",
+      portfolio_url: profile?.portfolio_url || "",
+      linkedin_url: profile?.linkedin_url || "",
     });
     setSkills(profile?.skills || []);
-  }, [isLoaded, profile]);
-
-  const {
-    loading: savingProfile,
-    error: saveError,
-    fn: fnSaveProfile,
-  } = useFetch(upsertProfile);
-
-  const {
-    loading: uploadingResume,
-    error: uploadError,
-    fn: fnUploadResume,
-  } = useFetch(uploadProfileResume, { user_id: user?.id });
-
-  const values = watch();
-
-  const stepFields = {
-    0: ["full_name", "location"],
-    1: ["experience_years", "education"],
+    setEditingSection(key);
   };
 
-  const goNext = async () => {
-    const fields = stepFields[step];
-    if (fields) {
-      const valid = await trigger(fields);
-      if (!valid) return;
-    }
-    if (step === 2 && skills.length === 0) return;
-    if (step === 3 && !profile?.resume_url && !resumeFile) return;
-    setDirection(1);
-    setStep((s) => Math.min(s + 1, STEPS.length - 1));
-  };
-
-  const goBack = () => {
-    setDirection(-1);
-    setStep((s) => Math.max(s - 1, 0));
-  };
+  const setField = (key, val) => setForm((f) => ({ ...f, [key]: val }));
 
   const addSkill = (raw) => {
     const val = raw.trim();
     if (!val) return;
-    if (!skills.some((s) => s.toLowerCase() === val.toLowerCase())) {
-      setSkills((s) => [...s, val]);
-    }
+    if (!skills.some((s) => s.toLowerCase() === val.toLowerCase())) setSkills((s) => [...s, val]);
     setSkillInput("");
   };
-
   const removeSkill = (val) => setSkills((s) => s.filter((x) => x !== val));
 
-  const handleSkillKeyDown = (e) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      addSkill(skillInput);
-    }
+  const SECTION_FIELDS = {
+    personal: ["full_name", "headline", "location", "phone"],
+    experience: ["experience_years"],
+    education: ["education"],
+    skills: ["skills"],
+    preferences: ["portfolio_url", "linkedin_url"],
   };
 
-  const handleFile = (file) => {
-    if (!file) return;
-    const okType = ["application/pdf", "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"].includes(file.type);
-    if (!okType) {
-      alert("Only PDF or Word documents are allowed.");
-      return;
+  const handleSave = async () => {
+    const fields = SECTION_FIELDS[editingSection] || [];
+    const payload = { user_id: user.id };
+    for (const f of fields) {
+      if (f === "skills") payload.skills = skills;
+      else if (f === "experience_years") payload.experience_years = form.experience_years === "" ? null : Number(form.experience_years);
+      else payload[f] = form[f] || null;
     }
-    setResumeFile(file);
-  };
-
-  const onFinalSubmit = async () => {
-    await fnSaveProfile({
-      user_id: user.id,
-      full_name: values.full_name,
-      headline: values.headline || null,
-      location: values.location,
-      experience_years: values.experience_years,
-      education: values.education,
-      skills,
-      phone: values.phone || null,
-    });
-
-    if (resumeFile) {
-      await fnUploadResume(resumeFile);
-    }
-
+    await fnSave(payload);
     await refetch();
-    navigate(nextPath || "/jobs");
+    setEditingSection(null);
   };
 
-  if (!isLoaded || loadingProfile) {
-    return <BarLoader className="mb-4" width={"100%"} color="#7c5cff" />;
+  const sections = getProfileSections(profile, resumes.length);
+  const completion = getProfileCompletion(profile, resumes.length);
+  const animatedCompletion = useCountUp(completion);
+
+  if (!isLoaded || loadingProfile || loadingResumes) {
+    return <BarLoader className="mb-4" width={"100%"} color="var(--primary)" />;
   }
 
-  const variants = {
-    enter: (dir) => ({ opacity: 0, x: dir > 0 ? 40 : -40 }),
-    center: { opacity: 1, x: 0 },
-    exit: (dir) => ({ opacity: 0, x: dir > 0 ? -40 : 40 }),
+  const summaries = {
+    personal: profile?.location ? `${profile.full_name || "—"} · ${profile.location}` : profile?.full_name || "Not set",
+    experience: profile?.experience_years != null ? `${profile.experience_years} yrs experience` : "Not set",
+    education: profile?.education || "Not set",
+    skills: profile?.skills?.length ? profile.skills.slice(0, 4).join(", ") : "Not set",
+    resume: resumes.length
+      ? `${resumes.length} version${resumes.length > 1 ? "s" : ""} · Default: ${defaultResume?.title}`
+      : "No resume uploaded",
+    preferences: profile?.phone || profile?.portfolio_url || profile?.linkedin_url ? "Set" : "Not set",
   };
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-16">
-      <div className="mb-2 flex items-center justify-between">
-        <h1 className="font-display text-4xl">Complete Your Profile</h1>
-        {isComplete && (
-          <span className="hairline flex items-center gap-1.5 rounded-full bg-green-950/40 border-green-800 px-3 py-1 text-xs text-green-400">
-            <CheckCircle2 className="h-3.5 w-3.5" /> Complete
-          </span>
+    <div className="relative mx-auto max-w-3xl overflow-hidden rounded-3xl px-2 py-2">
+      {/* <AmbientOrbs /> */}
+      {/* Hero */}
+      <div className="hairline relative mb-8 overflow-hidden rounded-[28px] bg-elevated p-8">
+        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground sm:justify-start">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Career Profile
+        </div>
+        <h1 className="mt-2 text-center font-display text-3xl sm:text-left sm:text-4xl">
+          Everything recruiters need, beautifully organized.
+        </h1>
+
+        <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+          <div className="w-full sm:w-auto">
+            <div className="text-xs text-muted-foreground">Profile Completion</div>
+            <div className="mt-1 flex items-center gap-3">
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-border sm:w-40 sm:flex-none">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-primary to-cyan transition-all duration-700"
+                  style={{ width: `${completion}%` }}
+                />
+              </div>
+              <span className="text-lg font-semibold">{animatedCompletion}%</span>
+            </div>
+          </div>
+          <div className="flex gap-8 text-sm">
+            <div>
+              <div className="text-xs text-muted-foreground">Last Updated</div>
+              <div className="mt-0.5 font-medium">{timeAgo(profile?.updated_at)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Preferred Resume</div>
+              <div className="mt-0.5 font-medium">{defaultResume?.title || "None yet"}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section cards */}
+      <div className="flex flex-col gap-3">
+        {sections.map((s, i) =>
+          s.key === "resume" ? (
+            <SectionCard key={s.key} section={s} index={i} summary={summaries.resume} href="/resume" />
+          ) : (
+            <SectionCard
+              key={s.key}
+              section={s}
+              index={i}
+              summary={summaries[s.key]}
+              onEdit={() => openEditor(s.key)}
+            />
+          )
         )}
       </div>
-      <p className="text-muted-foreground mb-10">
-        Fill this out once — every future application is a single click.
-      </p>
 
-      {/* Progress rail */}
-      <div className="mb-12 flex items-center">
-        {STEPS.map((s, i) => {
-          const Icon = s.icon;
-          const active = i === step;
-          const done = i < step;
-          return (
-            <div key={s.key} className="flex flex-1 items-center last:flex-none">
-              <button
-                type="button"
-                onClick={() => i < step && (setDirection(-1), setStep(i))}
-                disabled={i > step}
-                className="flex flex-col items-center gap-2"
-              >
-                <div
-                  className={cn(
-                    "grid h-10 w-10 place-items-center rounded-full border transition-colors duration-300",
-                    active && "border-primary bg-primary/10 text-primary",
-                    done && "border-primary bg-primary text-background",
-                    !active && !done && "border-border text-muted-foreground"
-                  )}
-                >
-                  {done ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
-                </div>
-                <span
-                  className={cn(
-                    "hidden text-[11px] sm:block",
-                    active ? "text-foreground" : "text-muted-foreground"
-                  )}
-                >
-                  {s.label}
-                </span>
-              </button>
-              {i < STEPS.length - 1 && (
-                <div className="mx-2 h-px flex-1 bg-border relative overflow-hidden -mt-5 sm:mt-0">
-                  <div
-                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-cyan transition-all duration-500"
-                    style={{ width: i < step ? "100%" : "0%" }}
-                  />
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {/* Edit drawer — shared shell, fields swap per section */}
+      <Drawer open={!!editingSection} onOpenChange={(o) => !o && setEditingSection(null)}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>
+              Edit {sections.find((s) => s.key === editingSection)?.label}
+            </DrawerTitle>
+            <DrawerDescription>Changes save immediately to your Career Profile.</DrawerDescription>
+          </DrawerHeader>
 
-      <div className="hairline overflow-hidden rounded-2xl bg-surface/50 p-8 backdrop-blur">
-        <AnimatePresence mode="wait" custom={direction}>
-          <motion.div
-            key={step}
-            custom={direction}
-            variants={variants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {/* Step 0 — Basics */}
-            {step === 0 && (
-              <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 p-4 pb-0">
+            {editingSection === "personal" && (
+              <>
                 <div>
                   <Label>Full Name</Label>
-                  <Input {...register("full_name")} placeholder="Your full name" className="mt-1.5" />
-                  {errors.full_name && <p className="text-red-500 text-sm mt-1">{errors.full_name.message}</p>}
+                  <Input className="mt-1.5" value={form.full_name} onChange={(e) => setField("full_name", e.target.value)} />
                 </div>
                 <div>
                   <Label>Headline</Label>
-                  <Input
-                    {...register("headline")}
-                    placeholder="e.g. Final-year CSE student, React & Node developer"
-                    className="mt-1.5"
-                  />
+                  <Input className="mt-1.5" value={form.headline} onChange={(e) => setField("headline", e.target.value)} placeholder="e.g. Final-year CSE student, React & Node developer" />
                 </div>
                 <div>
                   <Label>Location</Label>
-                  <Controller
-                    name="location"
-                    control={control}
-                    render={({ field }) => (
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger className="mt-1.5">
-                          <SelectValue placeholder="Select your location" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            {State.getStatesOfCountry("IN").map(({ name }) => (
-                              <SelectItem key={name} value={name}>
-                                {name}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                  {errors.location && <p className="text-red-500 text-sm mt-1">{errors.location.message}</p>}
-                </div>
-                <div>
-                  <Label>Phone (optional)</Label>
-                  <Input {...register("phone")} placeholder="Your phone number" className="mt-1.5" />
-                </div>
-              </div>
-            )}
-
-            {/* Step 1 — Experience */}
-            {step === 1 && (
-              <div className="flex flex-col gap-6">
-                <div>
-                  <Label>Years of Experience</Label>
-                  <Input
-                    type="number"
+                  <CitySelect
+                    value={form.location}
+                    onChange={(v) => setField("location", v)}
+                    placeholder="Select your location"
+                    allowClear={false}
                     className="mt-1.5"
-                    {...register("experience_years", { valueAsNumber: true })}
-                  />
-                  {errors.experience_years && (
-                    <p className="text-red-500 text-sm mt-1">{errors.experience_years.message}</p>
-                  )}
-                </div>
-                <div>
-                  <Label>Education</Label>
-                  <Controller
-                    name="education"
-                    control={control}
-                    render={({ field }) => (
-                      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                        {EDUCATION_OPTIONS.map((opt) => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => field.onChange(opt)}
-                            className={cn(
-                              "hairline rounded-xl px-4 py-3 text-sm text-left transition-colors duration-200",
-                              field.value === opt
-                                ? "border-primary bg-primary/10 text-primary"
-                                : "hover:border-border-strong"
-                            )}
-                          >
-                            {opt}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  />
-                  {errors.education && <p className="text-red-500 text-sm mt-1">{errors.education.message}</p>}
-                </div>
-              </div>
-            )}
-
-            {/* Step 2 — Skills */}
-            {step === 2 && (
-              <div className="flex flex-col gap-4">
-                <div>
-                  <Label>Your Skills</Label>
-                  <div className="hairline mt-1.5 flex flex-wrap gap-2 rounded-xl p-3">
-                    {skills.map((s) => (
-                      <span
-                        key={s}
-                        className="flex items-center gap-1.5 rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-medium"
-                      >
-                        {s}
-                        <button type="button" onClick={() => removeSkill(s)}>
-                          <X className="h-3 w-3" />
-                        </button>
-                      </span>
-                    ))}
-                    <input
-                      value={skillInput}
-                      onChange={(e) => setSkillInput(e.target.value)}
-                      onKeyDown={handleSkillKeyDown}
-                      onBlur={() => addSkill(skillInput)}
-                      placeholder={skills.length === 0 ? "Type a skill and press Enter" : "Add another..."}
-                      className="min-w-[140px] flex-1 bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted-foreground"
-                    />
-                  </div>
-                  {skills.length === 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">Add at least one skill to continue.</p>
-                  )}
-                </div>
-
-                <div>
-                  <div className="text-xs text-muted-foreground mb-2">Quick add</div>
-                  <div className="flex flex-wrap gap-2">
-                    {SUGGESTED_SKILLS.filter((s) => !skills.includes(s)).map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => addSkill(s)}
-                        className="hairline rounded-full px-3 py-1 text-xs hover:border-primary/50 hover:text-primary transition-colors"
-                      >
-                        + {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3 — Resume */}
-            {step === 3 && (
-              <div className="flex flex-col gap-4">
-                <Label>Resume</Label>
-                <div
-                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                  onDragLeave={() => setDragOver(false)}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setDragOver(false);
-                    handleFile(e.dataTransfer.files?.[0]);
-                  }}
-                  className={cn(
-                    "hairline flex flex-col items-center justify-center gap-3 rounded-2xl border-dashed py-12 text-center transition-colors duration-200",
-                    dragOver ? "border-primary bg-primary/5" : ""
-                  )}
-                >
-                  <UploadCloud className={cn("h-8 w-8", dragOver ? "text-primary" : "text-muted-foreground")} />
-                  <div className="text-sm">
-                    Drag & drop your resume, or{" "}
-                    <label htmlFor="resume-upload" className="text-primary underline cursor-pointer">
-                      browse
-                    </label>
-                  </div>
-                  <div className="text-xs text-muted-foreground">PDF or Word, up to 5MB</div>
-                  <input
-                    id="resume-upload"
-                    type="file"
-                    accept=".pdf,.doc,.docx"
-                    className="hidden"
-                    onChange={(e) => handleFile(e.target.files?.[0])}
                   />
                 </div>
-
-                {(resumeFile || profile?.resume_url) && (
-                  <div className="hairline flex items-center gap-2 rounded-xl px-4 py-3 text-sm">
-                    <FileText className="h-4 w-4 text-primary shrink-0" />
-                    <span className="truncate">
-                      {resumeFile?.name || profile?.resume_filename || "Current resume"}
-                    </span>
-                  </div>
-                )}
-                {!profile?.resume_url && !resumeFile && (
-                  <p className="text-xs text-muted-foreground">Required to complete your profile.</p>
-                )}
-              </div>
+                <div>
+                  <Label>Phone</Label>
+                  <Input className="mt-1.5" value={form.phone} onChange={(e) => setField("phone", e.target.value)} />
+                </div>
+              </>
             )}
 
-            {/* Step 4 — Review */}
-            {step === 4 && (
-              <div className="flex flex-col gap-4">
-                <ReviewRow label="Name" value={values.full_name} onEdit={() => setStep(0)} />
-                <ReviewRow label="Headline" value={values.headline || "—"} onEdit={() => setStep(0)} />
-                <ReviewRow label="Location" value={values.location} onEdit={() => setStep(0)} />
-                <ReviewRow label="Experience" value={`${values.experience_years} yrs`} onEdit={() => setStep(1)} />
-                <ReviewRow label="Education" value={values.education} onEdit={() => setStep(1)} />
-                <ReviewRow label="Skills" value={skills.join(", ")} onEdit={() => setStep(2)} />
-                <ReviewRow
-                  label="Resume"
-                  value={resumeFile?.name || profile?.resume_filename || "—"}
-                  onEdit={() => setStep(3)}
+            {editingSection === "experience" && (
+              <div>
+                <Label>Years of Experience</Label>
+                <Input
+                  type="number"
+                  className="mt-1.5"
+                  value={form.experience_years}
+                  onChange={(e) => setField("experience_years", e.target.value)}
                 />
-
-                {saveError?.message && <p className="text-red-500 text-sm">{saveError.message}</p>}
-                {uploadError?.message && <p className="text-red-500 text-sm">{uploadError.message}</p>}
-                {(savingProfile || uploadingResume) && <BarLoader width={"100%"} color="#7c5cff" />}
               </div>
             )}
-          </motion.div>
-        </AnimatePresence>
-      </div>
 
-      {/* Navigation */}
-      <div className="mt-6 flex items-center justify-between">
-        <Button variant="outline" onClick={goBack} disabled={step === 0} className="gap-2">
-          <ArrowLeft className="h-4 w-4" /> Back
-        </Button>
+            {editingSection === "education" && (
+              <div>
+                <Label>Education</Label>
+                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  {EDUCATION_OPTIONS.map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setField("education", opt)}
+                      className={cn(
+                        "hairline rounded-xl px-4 py-3 text-left text-sm transition-colors duration-200",
+                        form.education === opt ? "border-primary bg-primary/10 text-primary" : "hover:border-border-strong"
+                      )}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-        {step < STEPS.length - 1 ? (
-          <Button onClick={goNext} className="gap-2">
-            Continue <ArrowRight className="h-4 w-4" />
+            {editingSection === "skills" && (
+              <div>
+                <Label>Your Skills</Label>
+                <div className="hairline mt-1.5 flex flex-wrap gap-2 rounded-xl p-3">
+                  {skills.map((s) => (
+                    <span key={s} className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                      {s}
+                      <button type="button" onClick={() => removeSkill(s)}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    value={skillInput}
+                    onChange={(e) => setSkillInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === ",") {
+                        e.preventDefault();
+                        addSkill(skillInput);
+                      }
+                    }}
+                    onBlur={() => addSkill(skillInput)}
+                    placeholder={skills.length === 0 ? "Type a skill and press Enter" : "Add another..."}
+                    className="min-w-[140px] flex-1 bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted-foreground"
+                  />
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {SUGGESTED_SKILLS.filter((s) => !skills.includes(s)).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => addSkill(s)}
+                      className="hairline rounded-full px-3 py-1 text-xs transition-colors hover:border-primary/50 hover:text-primary"
+                    >
+                      + {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {editingSection === "preferences" && (
+              <>
+                <div>
+                  <Label>Portfolio</Label>
+                  <Input className="mt-1.5" value={form.portfolio_url} onChange={(e) => setField("portfolio_url", e.target.value)} placeholder="https://yourportfolio.com" />
+                </div>
+                <div>
+                  <Label>LinkedIn</Label>
+                  <Input className="mt-1.5" value={form.linkedin_url} onChange={(e) => setField("linkedin_url", e.target.value)} placeholder="https://linkedin.com/in/you" />
+                </div>
+              </>
+            )}
+
+            {saveError?.message && <p className="text-sm text-red-500">{saveError.message}</p>}
+            {saving && <BarLoader width={"100%"} color="var(--primary)" />}
+          </div>
+
+          <DrawerFooter>
+            <Button onClick={handleSave} disabled={saving} className="gap-2">
+              Save <Check className="h-4 w-4" />
+            </Button>
+            <DrawerClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+
+      {nextPath && (
+        <div className="mt-6 flex justify-end">
+          <Button onClick={() => navigate(nextPath)} className="gap-2">
+            Continue to job <ArrowRight className="h-4 w-4" />
           </Button>
-        ) : (
-          <Button
-            onClick={handleSubmit(onFinalSubmit)}
-            disabled={savingProfile || uploadingResume}
-            className="gap-2"
-          >
-            Save Profile <CheckCircle2 className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
-
-const ReviewRow = ({ label, value, onEdit }) => (
-  <div className="hairline flex items-center justify-between rounded-xl px-4 py-3">
-    <div>
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-sm font-medium mt-0.5">{value}</div>
-    </div>
-    <button type="button" onClick={onEdit} className="text-muted-foreground hover:text-primary">
-      <Pencil className="h-4 w-4" />
-    </button>
-  </div>
-);
 
 export default ProfilePage;

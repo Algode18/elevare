@@ -1,4 +1,4 @@
-import { getCompanies, getCompanyById, getCompanyFollowStatus, getCompanyOffices, followCompany } from "@/api/apiCompanies";
+import { getCompanies, getCompanyById, getCompanyFollowStatus, getCompanyOffices, followCompany, incrementCompanyProfileView } from "@/api/apiCompanies";
 import { getJobs } from "@/api/apiJobs";
 import JobCard from "@/components/job-card";
 import usePublicFetch from "@/hooks/use-public-fetch";
@@ -36,11 +36,6 @@ const IconLinkedin = (props) => (
     <path d="M4.98 3.5C4.98 4.88 3.88 6 2.5 6S0 4.88 0 3.5 1.1 1 2.48 1s2.5 1.12 2.5 2.5zM.24 8.25h4.48V23H.24V8.25zM8.24 8.25h4.29v2.01h.06c.6-1.13 2.06-2.32 4.24-2.32 4.54 0 5.37 2.99 5.37 6.87V23h-4.48v-6.6c0-1.57-.03-3.6-2.2-3.6-2.2 0-2.54 1.72-2.54 3.49V23H8.24V8.25z" />
   </svg>
 );
-const IconGithub = (props) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.69-1.28-1.69-1.04-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.7 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.2-1.49 3.18-1.18 3.18-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.43-2.7 5.41-5.27 5.69.41.36.78 1.08.78 2.17 0 1.57-.01 2.83-.01 3.22 0 .31.21.67.8.56A10.99 10.99 0 0 0 23.5 12c0-6.35-5.15-11.5-11.5-11.5z" />
-  </svg>
-);
 const IconX = (props) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M13.6 10.2 21 1.75h-1.76l-6.42 7.33-5.13-7.33H1.5l7.76 11.1L1.5 21.5h1.76l6.78-7.74 5.42 7.74h6.19l-8.05-11.3Zm-2.4 2.74-.79-1.1L3.9 3.02h2.7l5.03 7.19.78 1.1 6.54 9.35h-2.7l-5.33-7.62Z" />
@@ -61,7 +56,6 @@ const IconYoutube = (props) => (
 
 const SOCIAL_LINKS = [
   { key: "linkedin", icon: IconLinkedin, label: "LinkedIn" },
-  { key: "github", icon: IconGithub, label: "GitHub" },
   { key: "twitter", icon: IconX, label: "X" },
   { key: "instagram", icon: IconInstagram, label: "Instagram" },
   { key: "youtube", icon: IconYoutube, label: "YouTube" },
@@ -93,10 +87,14 @@ const QuickFact = ({ icon: Icon, label, value }) => {
 };
 
 const StatCard = ({ icon: Icon, value, label }) => (
-  <div className="hairline rounded-xl bg-surface/60 p-5">
-    <Icon className="h-4 w-4 text-primary" />
-    <div className="mt-3 font-display text-3xl">{value}</div>
-    <div className="mt-1 text-xs text-muted-foreground">{label}</div>
+  <div className="hairline flex items-center gap-3 rounded-xl bg-surface/60 p-4">
+    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+      <Icon className="h-4 w-4" />
+    </div>
+    <div className="min-w-0">
+      <div className="font-display text-2xl leading-none">{value}</div>
+      <div className="mt-1 truncate text-xs text-muted-foreground">{label}</div>
+    </div>
   </div>
 );
 
@@ -181,6 +179,7 @@ const CompanyDetailsPage = () => {
     fnJobs();
     fnOffices();
     fnAllCompanies();
+    if (id) incrementCompanyProfileView(id).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -202,7 +201,7 @@ const CompanyDetailsPage = () => {
   }, [allCompanies, company]);
 
   if (loadingCompany !== false) {
-    return <BarLoader className="mx-6 mt-8" width={"95%"} color="#7c5cff" />;
+    return <BarLoader className="mx-6 mt-8" width={"95%"} color="var(--primary)" />;
   }
 
   if (!company) {
@@ -242,32 +241,32 @@ const CompanyDetailsPage = () => {
             <div className="absolute inset-0 grid-bg opacity-20" />
           </>
         )}
-        <div className="relative mx-auto max-w-6xl px-6 py-16">
-          <nav className="mb-8 flex items-center gap-1.5 text-xs text-muted-foreground">
+        <div className="relative mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-16">
+          <nav className="mb-5 flex items-center gap-1.5 text-xs text-muted-foreground sm:mb-8">
             <Link to="/companies" className="hover:text-foreground">Companies</Link>
             <ChevronRight className="h-3 w-3" />
             <span className="text-foreground">{company.name}</span>
           </nav>
 
-          <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
               {company.logo_url ? (
                 <img
                   src={company.logo_url}
                   alt={company.name}
-                  className="h-20 w-20 shrink-0 rounded-2xl bg-white/5 object-contain p-3"
+                  className="h-14 w-14 shrink-0 rounded-xl bg-surface-2 object-contain p-2 sm:h-20 sm:w-20 sm:rounded-2xl sm:p-3"
                 />
               ) : (
-                <div className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-cyan">
-                  <Building2 className="h-8 w-8 text-primary-foreground" />
+                <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-primary to-cyan sm:h-20 sm:w-20 sm:rounded-2xl">
+                  <Building2 className="h-6 w-6 text-primary-foreground sm:h-8 sm:w-8" />
                 </div>
               )}
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="font-display text-5xl">{company.name}</h1>
-                  {isVerified && <BadgeCheck className="h-6 w-6 shrink-0 text-cyan" aria-label="Verified company" />}
+                  <h1 className="font-display text-3xl sm:text-5xl">{company.name}</h1>
+                  {isVerified && <BadgeCheck className="h-5 w-5 shrink-0 text-cyan sm:h-6 sm:w-6" aria-label="Verified company" />}
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-muted-foreground sm:mt-3 sm:gap-x-5">
                   {company.industry && (
                     <span className="flex items-center gap-1.5">
                       <Building className="h-3.5 w-3.5" />
@@ -400,7 +399,7 @@ const CompanyDetailsPage = () => {
           <div className="mb-6 text-xs font-mono uppercase tracking-wider text-muted-foreground">
             Hiring Insights
           </div>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-4 sm:grid-cols-4">
             <StatCard icon={Briefcase} value={openCount} label={`Open role${openCount === 1 ? "" : "s"}`} />
             <StatCard icon={Compass} value={remoteCount} label="Remote positions" />
             <StatCard icon={MapPin} value={offices?.length ?? 0} label="Office locations" />
@@ -509,9 +508,9 @@ const CompanyDetailsPage = () => {
               </div>
             )}
           </div>
-          {loadingJobs !== false && <BarLoader width={"100%"} color="#7c5cff" />}
+          {loadingJobs !== false && <BarLoader width={"100%"} color="var(--primary)" />}
           {loadingJobs === false && (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {visibleJobs?.length ? (
                 visibleJobs.map((job) => (
                   <JobCard key={job.id} job={job} savedInit={savedIdSet.has(job.id)} />
@@ -530,7 +529,7 @@ const CompanyDetailsPage = () => {
           <div className="mb-6 text-xs font-mono uppercase tracking-wider text-muted-foreground">
             How Hiring Works
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
             {HIRING_STEPS.map((step, i) => (
               <motion.div
                 key={step.title}
@@ -538,16 +537,34 @@ const CompanyDetailsPage = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.4 }}
                 transition={{ duration: 0.4, delay: i * 0.08 }}
-                className="hairline relative rounded-xl bg-surface/60 p-5"
+                className="hairline relative rounded-xl bg-surface/60 p-3.5 sm:p-5"
               >
-                <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
-                  0{i + 1}
+                {/* Mobile — compact row: icon (with step number badge) beside title/description */}
+                <div className="flex items-center gap-3 sm:hidden">
+                  <div className="relative grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                    <step.icon className="h-4 w-4" />
+                    <span className="hairline absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-surface text-[9px] font-mono text-muted-foreground">
+                      {i + 1}
+                    </span>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold">{step.title}</div>
+                    <div className="text-xs text-muted-foreground">{step.desc}</div>
+                  </div>
                 </div>
-                <div className="mt-3 grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">
-                  <step.icon className="h-4 w-4" />
+
+                {/* Desktop/tablet — original vertical card, unchanged */}
+                <div className="hidden sm:block">
+                  <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
+                    0{i + 1}
+                  </div>
+                  <div className="mt-3 grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">
+                    <step.icon className="h-4 w-4" />
+                  </div>
+                  <div className="mt-3 text-sm font-semibold">{step.title}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">{step.desc}</div>
                 </div>
-                <div className="mt-3 text-sm font-semibold">{step.title}</div>
-                <div className="mt-1 text-xs text-muted-foreground">{step.desc}</div>
+
                 {i < HIRING_STEPS.length - 1 && (
                   <ChevronRight className="absolute -right-2 top-1/2 hidden h-4 w-4 -translate-y-1/2 text-muted-foreground/40 lg:block" />
                 )}
@@ -581,17 +598,18 @@ const CompanyDetailsPage = () => {
               Browse every open position on Elevare, or follow {company.name} to get notified
               when they post something new.
             </p>
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+            <div className="mt-7 flex items-center justify-center gap-2 sm:gap-3">
               <Link
-                to="/jobs"
-                className="group inline-flex items-center gap-2 rounded-md bg-foreground px-6 py-3 text-sm font-medium text-background hover:opacity-90"
+                to={isCandidate ? "/dashboard/jobs" : "/jobs"}
+                className="group inline-flex items-center gap-1.5 rounded-md bg-foreground px-4 py-2 text-xs font-medium text-background hover:opacity-90 sm:gap-2 sm:px-6 sm:py-3 sm:text-sm"
               >
-                Browse All Jobs <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                Browse All Jobs{" "}
+                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 sm:h-4 sm:w-4" />
               </Link>
               {!isCandidate && (
                 <Link
                   to="/companies"
-                  className="hairline inline-flex items-center gap-2 rounded-md bg-surface/60 px-6 py-3 text-sm font-medium backdrop-blur hover:border-border-strong"
+                  className="hairline inline-flex items-center gap-1.5 rounded-md bg-surface/60 px-4 py-2 text-xs font-medium backdrop-blur hover:border-border-strong sm:gap-2 sm:px-6 sm:py-3 sm:text-sm"
                 >
                   Explore More Companies
                 </Link>

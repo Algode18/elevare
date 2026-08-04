@@ -16,8 +16,8 @@ export function MatchRing({ value, size = 44, stroke = 4 }) {
         />
         <defs>
           <linearGradient id="matchGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#7c5cff" />
-            <stop offset="100%" stopColor="#22d3ee" />
+            <stop offset="0%" stopColor="var(--primary)" />
+            <stop offset="100%" stopColor="var(--accent-cyan)" />
           </linearGradient>
         </defs>
       </svg>
@@ -29,13 +29,19 @@ export function MatchRing({ value, size = 44, stroke = 4 }) {
 export function Chip({ children, tone = "default" }) {
   const tones = {
     default: "bg-surface-2 text-foreground border-border",
-    lime: "bg-lime/10 text-lime border-lime/30",
-    cyan: "bg-cyan/10 text-cyan border-cyan/30",
-    warn: "bg-warning/10 text-warning border-warning/30",
-    danger: "bg-destructive/15 text-destructive border-destructive/30",
+    lime: "bg-tag-hiring-bg text-tag-hiring-text border-transparent",
+    cyan: "bg-tag-remote-bg text-tag-remote-text border-transparent",
+    warn: "bg-tag-urgent-bg text-tag-urgent-text border-transparent",
+    danger: "bg-destructive-bg text-destructive border-transparent",
+    // Direct semantic aliases matching the Frosted Ivory tag spec
+    remote: "bg-tag-remote-bg text-tag-remote-text border-transparent",
+    fulltime: "bg-tag-fulltime-bg text-tag-fulltime-text border-transparent",
+    hiring: "bg-tag-hiring-bg text-tag-hiring-text border-transparent",
+    closed: "bg-tag-closed-bg text-tag-closed-text border-transparent",
+    urgent: "bg-tag-urgent-bg text-tag-urgent-text border-transparent",
   };
   return (
-    <span className={cn("inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium", tones[tone])}>
+    <span className={cn("inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium", tones[tone] ?? tones.default)}>
       {children}
     </span>
   );
