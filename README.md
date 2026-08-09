@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./public/logo.png" alt="Elevare" width="120" />
+<!-- <img src="./public/logo.png" alt="Elevare" width="120" /> -->
 
 # Elevare
 
